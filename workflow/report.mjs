@@ -25,9 +25,11 @@ const label = (result) => escape(result ? `${result.device ?? '—'} / ${result.
 export function renderReport(run) {
   const status = runStatus(run.steps);
   const summary = basicDemoSummary(run);
-  const external = ['external-backend', 'external-web'].includes(run.scope);
+  const externalScope = { 'external-backend': 'External backend', 'external-web': 'External Web and API',
+    'external-android': 'External Web, API and Android' }[run.scope];
+  const external = Boolean(externalScope);
   const ticket = `Ticket <code>${escape(run.ticketId ?? 'Not created')}</code>`;
-  const scope = external ? `Scope <strong>${run.scope === 'external-web' ? 'External Web and API' : 'External backend'}</strong> · ${ticket}`
+  const scope = external ? `Scope <strong>${externalScope}</strong> · ${ticket}`
     : `Model mode <strong>${escape(run.mode)}</strong> · ${run.scope === 'model-only' ? 'Scope <strong>Model only</strong>' : ticket}`;
   const steps = run.steps.map(({ name, status, summary, evidence }) => `
     <li><span class="badge ${escape(status)}">${escape(status)}</span><div>

@@ -69,6 +69,10 @@ to map different routes and fields and verify the same ticket after creation.
 Add `--web-url` and `--web-map` to submit your Web form and verify its displayed
 ticket through the API. See the [external Web example](docs/getting-started.md#external-web).
 
+Add `--android-map` to run your app and instrumentation APKs on a physical
+device and look up the same work order. See the
+[external Android example](docs/getting-started.md#external-android).
+
 ## What the report verifies
 
 - **Web and API.** Playwright submits the form in Chromium. The runner

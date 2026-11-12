@@ -1,0 +1,6 @@
+{
+  "app_apk": "../android/app/build/outputs/apk/debug/app-debug.apk",
+  "test_apk": "../android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+  "app_package": "io.github.leejunhao791.aiappregression",
+  "instrumentation": "io.github.leejunhao791.aiappregression.test/io.github.leejunhao791.aiappregression.TicketInstrumentation"
+}

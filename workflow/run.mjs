@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
 import { closeSync, existsSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
+import { createServer as createHttpServer } from 'node:http';
 import { createServer } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as wait } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
-import { checkAndroid, findAndroidDevice } from './android.mjs';
+import { checkAndroid, findAndroidDevice, loadAndroidMap, verifyAndroidApks } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
 import { externalBackend } from './external-backend.mjs';
 import { loadFixtures } from './fixtures.mjs';
@@ -19,7 +21,7 @@ const providerKey = process.env.LLM_API_KEY;
 delete process.env.LLM_API_KEY;
 const usage = 'npm run check -- [--model-only] [--live] [--model-url URL] [--android auto|required|off] ' +
   '[--serial SERIAL] [--profile FILE] [--fixtures FILE] [--output DIR] [--fault wrong-device] ' +
-  '[--backend-url URL --backend-map FILE [--web-url URL --web-map FILE]]';
+  '[--backend-url URL --backend-map FILE [--web-url URL --web-map FILE [--android-map FILE]]]';
 const { values: options } = parseArgs({ options: {
   live: { type: 'boolean' },
   'model-only': { type: 'boolean' },
@@ -28,6 +30,7 @@ const { values: options } = parseArgs({ options: {
   'backend-map': { type: 'string' },
   'web-url': { type: 'string' },
   'web-map': { type: 'string' },
+  'android-map': { type: 'string' },
   android: { type: 'string', default: 'auto' },
   serial: { type: 'string' },
   fixtures: { type: 'string' },
@@ -47,15 +50,19 @@ if (!['auto', 'required', 'off'].includes(options.android) ||
 const modelOnly = options['model-only'];
 const backendOnly = options['backend-url'] !== undefined;
 const externalWeb = options['web-url'] !== undefined;
+const externalAndroid = options['android-map'] !== undefined;
 if (externalWeb !== (options['web-map'] !== undefined) || (externalWeb && !backendOnly)) {
   throw new Error('--web-url and --web-map must be used together with --backend-url and --backend-map.');
 }
 if (backendOnly !== (options['backend-map'] !== undefined)) {
   throw new Error('--backend-url and --backend-map must be used together.');
 }
+if (externalAndroid && (!externalWeb || options.android === 'off')) {
+  throw new Error('--android-map requires external Web and backend options and cannot be used with --android off.');
+}
 if (backendOnly && (modelOnly || options.live || options['model-url'] !== undefined ||
-    options.fault !== undefined || options.android === 'required' || options.serial !== undefined)) {
-  throw new Error('External backend mode cannot be combined with model-service, fault-injection, or Android device options.');
+    options.fault !== undefined || (!externalAndroid && (options.android === 'required' || options.serial !== undefined)))) {
+  throw new Error('External mode uses its own backend. Android device options require --android-map.');
 }
 if (modelOnly && (options.android === 'required' || options.serial !== undefined)) {
   throw new Error('--model-only cannot be combined with --android required or --serial.');
@@ -64,7 +71,7 @@ if (modelOnly && (options.android === 'required' || options.serial !== undefined
 const run = { startedAt: new Date().toISOString(), mode: backendOnly ? 'external' : options.live ? 'live' : 'mock',
   ticketId: null, steps: [], evaluation: null };
 if (modelOnly) run.scope = 'model-only';
-if (backendOnly) run.scope = externalWeb ? 'external-web' : 'external-backend';
+if (backendOnly) run.scope = externalAndroid ? 'external-android' : externalWeb ? 'external-web' : 'external-backend';
 const outputDir = resolve(options.output ?? join(root, 'artifacts', `run-${randomUUID().slice(0, 8)}`));
 mkdirSync(dirname(outputDir), { recursive: true });
 mkdirSync(outputDir);
@@ -220,6 +227,16 @@ async function checkModel(cases, modelUrl, profile, ticket) {
 
 async function checkExternalBackend(sample, profile) {
   const client = externalBackend(options['backend-url'], resolve(options['backend-map']), profile);
+  const apks = externalAndroid ? loadAndroidMap(resolve(options['android-map'])) : undefined;
+  let serial;
+  if (apks) {
+    serial = await stage('External Android preflight', async () => {
+      const device = await findAndroidDevice({ serial: options.serial ?? process.env.ADB_SERIAL, required: true });
+      await verifyAndroidApks(apks, device.sdk);
+      return { value: device.serial, summary: 'ADB found an authorized physical device and the APK package names match.' };
+    });
+    if (!serial) return;
+  }
   const created = await stage(externalWeb ? 'External Web create' : 'External backend create', async () => {
     let ticket;
     let evidence;
@@ -237,14 +254,51 @@ async function checkExternalBackend(sample, profile) {
       summary: externalWeb ? `Web created and displayed work order ${ticket.id}.` : `Created work order ${ticket.id}.` };
   });
   if (!created) return;
-  await stage('External backend lookup', async () => {
+  const verified = await stage('External backend lookup', async () => {
     const ticket = await client.lookup(created.id, requestSignal(5000));
     assert.equal(ticket.id, created.id, 'Lookup returned a different work-order ID.');
     assert.deepEqual(ticket, created, 'Lookup returned different mapped values for the created work order.');
     assert.equal(ticket.status, client.completedStatus, 'Mapped work-order status did not match completed_status.');
     assert.ok(labelsMatch(ticket.result, sample.expected), 'Mapped work-order labels differed from the expected labels.');
-    return { summary: `Lookup returned the same work order ${ticket.id} with status ${ticket.status} and expected labels ${ticket.result.device ?? 'null'} / ${ticket.result.category}.` };
+    return { value: ticket, summary: `Lookup returned the same work order ${ticket.id} with status ${ticket.status} and expected labels ${ticket.result.device ?? 'null'} / ${ticket.result.category}.` };
   });
+  if (verified && apks) {
+    await stage('External Android device', () => checkExternalAndroid(client, verified, serial, apks));
+  }
+}
+
+async function checkExternalAndroid(client, ticket, serial, apks) {
+  const path = `/api/tickets/${encodeURIComponent(ticket.id)}`;
+  let verifiedLookup = false;
+  const bridge = createHttpServer(async (request, response) => {
+    if (request.method !== 'GET' || request.url !== path) {
+      response.writeHead(404).end();
+      return;
+    }
+    try {
+      const result = await client.lookup(ticket.id, requestSignal(5000));
+      assert.deepEqual(result, ticket);
+      verifiedLookup = true;
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ...result, status: 'completed' }));
+    } catch {
+      response.writeHead(502).end();
+    }
+  });
+  bridge.listen(0, '127.0.0.1');
+  await once(bridge, 'listening');
+  try {
+    const result = await checkAndroid({
+      backendPort: bridge.address().port, ticket: { ...ticket, status: 'completed' },
+      serial, outputDir, required: true, externalApks: apks,
+    });
+    if (!verifiedLookup) {
+      throw Object.assign(new Error('Android did not complete a matching lookup through the external backend.'), { evidence: result.evidence });
+    }
+    return { ...result, summary: `The physical Android device looked up and displayed the same work order ${ticket.id} and labels.` };
+  } finally {
+    await new Promise((resolve) => bridge.close(resolve));
+  }
 }
 
 async function runChecks() {
@@ -328,7 +382,8 @@ try {
   writeFileSync(join(outputDir, 'report.html'), renderReport(run));
   writeFileSync(join(outputDir, 'report.json'), `${JSON.stringify({ ...run, status }, null, 2)}\n`);
   if (modelOnly) console.log('Scope: Model only.');
-  if (backendOnly) console.log(externalWeb ? 'Scope: External Web and API.' : 'Scope: External backend.');
+  if (backendOnly) console.log(externalAndroid ? 'Scope: External Web, API and Android.'
+    : externalWeb ? 'Scope: External Web and API.' : 'Scope: External backend.');
   for (const step of run.steps) console.log(`${step.status.toUpperCase()}  ${step.name} — ${step.summary}`);
   const summary = basicDemoSummary(run);
   if (summary) console.log(summary);

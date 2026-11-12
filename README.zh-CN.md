@@ -52,6 +52,8 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 再加 `--web-url` 和 `--web-map`，即可由浏览器提交自己的表单，再通过 API 核对页面显示的工单。[外部 Web 示例](docs/getting-started.zh-CN.md#外部-web)
 
+加上 `--android-map` 后，可以指定应用 APK 和测试 APK，在真机上查询同一张工单。[外部 Android 示例](docs/getting-started.zh-CN.md#外部-android)
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。

@@ -162,6 +162,36 @@ node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures
 
 浏览器通过表单自身的 POST 提交 JSON。脚本核对请求是否发往映射的创建接口、是否在映射的字段中携带样例文本，再比较页面显示的 ID 和创建响应中的 ID。随后用同一 ID 独立查询 API，核对映射字段及样例预期分类。报告附工单 ID 和 Web 截图。
 
+## 外部 Android
+
+启动[外部 Web 示例](#外部-web)，连接并解锁 Android 真机，授权 USB 调试。用 JDK 17 和 SDK Platform 35 在 `android` 目录构建示例应用和测试 APK。Windows 下用 `gradlew.bat` 替换 `./gradlew`。
+
+```sh
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+```
+
+回到仓库根目录，运行三端验收。
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures/alternate-backend.map.json --web-url http://127.0.0.1:8090/service-desk --web-map fixtures/alternate-web.map.json --android-map fixtures/alternate-android.map.json --fixtures fixtures/custom-tickets.example.json
+```
+
+接入自己的 APK 时，复制 [Android 映射模板](../fixtures/alternate-android.map.json)，填入配套的应用 APK 和测试 APK、应用包名 `app_package`，以及 `instrumentation`（测试包名和完整 runner 类名）。APK 相对路径以映射文件所在目录为准。脚本使用 Build Tools 35.0.0 或 PATH 中的 `aapt` 核对 APK 包名。请使用尚未安装这两个包的设备。验收会临时安装 APK 并通过 ADB 映射端口，结束后清理。连接多台设备时用 `--serial SERIAL` 选择。
+
+测试 APK 会收到字符串参数 `backendPort`、`ticketId`、`expectedDevice` 和 `expectedCategory`。应用查询 `http://127.0.0.1:<backendPort>/api/tickets/<ticketId>`。该本地接口复用后端映射重新查询外部 API，核对值与此前 API 查询一致后，返回 `id`、`text`、`status: "completed"` 和 `result: { device, category }`。本模式的工单 ID 使用 ASCII 字母、数字、下划线或连字符。
+
+测试 APK 应断言页面实际显示的值，并在成功的仪器化测试结果中逐行输出以下内容。设备字段为 null 时，预期显示值为 `None`。
+
+```text
+Ticket UI assertions passed
+Ticket ID: <ticketId>
+Status: completed
+Device: <expectedDevice>
+Category: <expectedCategory>
+```
+
+HTML 报告会附上同一工单的 Web 截图、设备信息和测试日志。
+
 ## 根据报告排障
 
 | 现象 | 检查方法 |

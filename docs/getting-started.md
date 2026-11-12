@@ -253,6 +253,54 @@ then matches the displayed ID to the mapped response. It uses that ID for the
 independent API lookup and checks the mapped fields and expected classification.
 The report includes the work-order ID and a Web screenshot.
 
+## External Android
+
+Start the [external Web example](#external-web). Connect and unlock a physical
+Android phone and authorize USB debugging. Build the example app and test APKs
+from the `android` directory with JDK 17 and SDK Platform 35. On Windows, use
+`gradlew.bat` in place of `./gradlew`.
+
+```sh
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+```
+
+From the repository root, run the three-layer check.
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures/alternate-backend.map.json --web-url http://127.0.0.1:8090/service-desk --web-map fixtures/alternate-web.map.json --android-map fixtures/alternate-android.map.json --fixtures fixtures/custom-tickets.example.json
+```
+
+Copy the [Android map](../fixtures/alternate-android.map.json) for your own
+matching app and test APKs. APK paths are relative to the map. Set
+`app_package` and `instrumentation` (test package and fully qualified runner).
+The runner checks the APK package names with `aapt` from Build Tools 35.0.0
+or PATH. Use a phone without the supplied packages installed. The workflow
+temporarily installs both APKs and sets up an ADB reverse port, then cleans up.
+Use `--serial SERIAL` when several devices are attached.
+
+The instrumentation receives `backendPort`, `ticketId`, `expectedDevice`, and
+`expectedCategory` as string extras. The app reads
+`http://127.0.0.1:<backendPort>/api/tickets/<ticketId>`. That loopback route
+re-queries the external API through the same backend map and returns
+`id`, `text`, `status: "completed"`, and `result: { device, category }` after the
+mapped values match the earlier API lookup. Ticket IDs for this mode use ASCII
+letters, digits, underscores, or hyphens.
+
+The test APK must assert the displayed values and return a successful
+instrumentation result with the following separate lines. For a null device
+the expected display value is `None`.
+
+```text
+Ticket UI assertions passed
+Ticket ID: <ticketId>
+Status: completed
+Device: <expectedDevice>
+Category: <expectedCategory>
+```
+
+The HTML report links the Web screenshot, device details, and instrumentation
+log for the same ticket.
+
 ## Troubleshoot from the report
 
 | What you see | What to check |
