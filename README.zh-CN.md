@@ -22,7 +22,7 @@ node workflow/run.mjs --android off
 
 Linux 上请将浏览器安装步骤替换为 `npx playwright install chromium --only-shell --with-deps`，同时安装系统依赖。
 
-终端和 `artifacts/run-…/report.html` 都会显示 **Basic demo passed. Android skipped by request (--android off).**，即基础演示通过、Android 按选项跳过。由于本次未包含 Android，工作流标记为 **partial**。要接入真机或真实模型，请查看[上手教程](docs/getting-started.zh-CN.md)。
+终端和 `artifacts/run-…/report.html` 都会显示 **Basic demo passed. Android skipped by request (--android off).**，即基础演示通过、Android 按选项跳过。由于本次未包含 Android，工作流标记为 **partial**。[上手教程](docs/getting-started.zh-CN.md)提供只接真机、只接真实模型、两者都接三种跑法。
 
 ## 报告示例
 

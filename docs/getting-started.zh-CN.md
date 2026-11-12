@@ -2,7 +2,7 @@
 
 [English](getting-started.md)
 
-先用固定模型响应跑通维修工单演示，再接入 Android 真机，最后换成真实模型重复同一组检查。
+先用固定模型响应跑通维修工单演示，再选择只接 Android 真机、只接真实模型，或两者都接。
 
 ## 1. 用固定模型响应运行
 
@@ -20,11 +20,19 @@ Linux 上请将浏览器安装步骤替换为 `npx playwright install chromium -
 
 终端和输出路径中的 `report.html` 顶部应显示 **Basic demo passed. Android skipped by request (--android off).**，即基础演示通过、Android 按选项跳过。Web 前端、后端 API 和 Linux 模型服务应通过检查，准确性为 **4/4**，鲁棒性为 **12/12**。**partial** 表示本次运行未包含 Android。这一步无需 API Key。
 
-## 2. 接入 Android 真机
+## 选择跑法
+
+| 跑法 | 验证内容 |
+| --- | --- |
+| [只接 Android 真机](#只接-android-真机) | 用固定模型响应，在手机上核对同一张工单。 |
+| [只接真实模型](#只接真实模型) | 通过 Web 和 API 验证真实模型，跳过 Android。 |
+| [Android 真机和真实模型都接](#android-真机和真实模型都接) | 在四端核对同一张真实模型工单。 |
+
+### 只接 Android 真机
 
 1. 安装 JDK 17、Android SDK Platform 35、Build Tools 35.0.0 和 Platform-Tools。将 `JAVA_HOME` 指向 JDK 目录，将 `ANDROID_HOME` 指向 SDK 目录，并把 SDK 下的 `platform-tools` 目录加入 `PATH`。
 2. 用 USB 数据线连接一台 Android 7.0+ 手机。解锁手机，打开 USB 调试，并在弹窗中授权当前电脑。运行 `adb devices`，确认手机状态为 `device`。
-3. 保持手机解锁，在项目根目录运行以下命令。
+3. 保持手机解锁，在项目根目录用固定模型响应运行演示。这种跑法无需 API Key。
 
 ```sh
 node workflow/run.mjs --android required
@@ -34,9 +42,9 @@ node workflow/run.mjs --android required
 
 测试脚本会构建并临时安装演示和测试 APK，通过 ADB 映射本地端口，并在检查结束后移除 APK 和端口映射。请使用尚未安装这两个应用包的手机。如果连接了多台设备，请加上 `--serial SERIAL`，并使用 `adb devices` 中对应手机的序列号。
 
-## 3. 换成真实模型复测
+### 只接真实模型
 
-在运行测试的终端中设置环境变量，把示例地址和模型 ID 换成服务商提供的值。如果接口路径为 `/v1/chat/completions`，基础地址应以 `/v1` 结尾。服务商要求鉴权时再输入 API Key。
+在运行测试的终端中设置环境变量，把示例地址和模型 ID 换成服务商提供的值。如果接口路径为 `/v1/chat/completions`，基础地址应以 `/v1` 结尾。服务商要求鉴权时再输入 API Key。由脚本启动模型服务时，如果漏填 `LLM_BASE_URL` 或 `LLM_MODEL`，终端会列出缺项。
 
 **PowerShell**
 
@@ -44,7 +52,6 @@ node workflow/run.mjs --android required
 $env:LLM_BASE_URL = 'https://api.example.com/v1'
 $env:LLM_MODEL = 'your-model-id'
 $env:LLM_API_KEY = [System.Net.NetworkCredential]::new('', (Read-Host 'API key' -AsSecureString)).Password
-node workflow/run.mjs --live --android required
 ```
 
 **Bash**
@@ -55,14 +62,29 @@ export LLM_MODEL='your-model-id'
 read -rs -p 'API key: ' LLM_API_KEY
 echo
 export LLM_API_KEY
-node workflow/run.mjs --live --android required
+```
+
+运行真实模型检查，跳过 Android。
+
+```sh
+node workflow/run.mjs --live --android off
 ```
 
 使用 Linux 模型服务能访问的地址。如果服务商接口运行在 Docker Desktop 的宿主机上，请在 URL 中使用 `host.docker.internal`。如果本项目的模型服务已经运行在 Linux 上，请在该实例中设置真实模型模式和服务商凭据，再给测试命令加上 `--model-url URL`。
 
 模型服务会将构造的工单文本发给配置好的服务商。Chat Completions 的消息内容应返回包含 `device` 和 `category` 的 JSON 对象，也支持用一层 Markdown 代码块包裹 JSON。如果模型支持相关选项，可以设置 `LLM_ENABLE_THINKING=false` 关闭思考模式，设置 `LLM_JSON_MODE=true` 请求 JSON 输出。
 
-在新报告中确认 **Model mode** 为 **live**，再核对 Web、后端 API 和 Android 是否查到同一张已完成的工单。查看 16 条标注样例的预期字段、实际字段、耗时和失败原因。工单核对通过时，模型评测仍可能有失败样例。
+在报告中确认 **Model mode** 为 **live**，并核对 Web 和后端 API 是否查到同一张已完成的工单。查看 16 条标注样例的预期字段、实际字段、耗时和失败原因。工单核对通过时，模型评测仍可能有失败样例。如果本次选中的检查都通过，总状态为 **partial**，因为 Android 已按选项跳过。
+
+### Android 真机和真实模型都接
+
+按[只接 Android 真机](#只接-android-真机)配置手机，按[只接真实模型](#只接真实模型)设置服务商环境变量，然后运行四端验收。
+
+```sh
+node workflow/run.mjs --live --android required
+```
+
+脚本会在启动模型服务或发送模型请求前检查 ADB 授权。若授权失败，解锁手机并接受 USB 调试授权后再运行。打开报告，核对 Web、后端 API 和 Android 的工单 ID 和字段，再查看模型评测分数。
 
 ## 根据报告排障
 
@@ -72,6 +94,7 @@ node workflow/run.mjs --live --android required
 | Chromium 未启动 | 在项目根目录运行 `npx playwright install chromium --only-shell`。Linux 上加 `--with-deps` 安装系统依赖。 |
 | ADB 显示手机为 `unauthorized` | 解锁手机并接受 USB 调试授权，再运行 `adb devices`。 |
 | Android 构建或安装失败 | 打开 `android-build.log` 或 `android-adb.log`。检查 JDK 17、SDK Platform 35，以及手机上是否有安装确认提示。 |
+| 缺少真实模型配置 | 补齐终端列出的变量。服务商要求鉴权时才需要 `LLM_API_KEY`。 |
 | 模型服务商拒绝请求 | 核对 API 基础地址、模型 ID、API Key 和可选模型配置。 |
 | 模型请求超时 | 查看失败样例及耗时。每次模型调用的总预算为 30 秒。可用 `LLM_ATTEMPT_TIMEOUT_SECONDS` 缩短首次尝试的时限，为预算内的一次重试留出时间。 |
 | JSON 无效或字段与标注不符 | 对照预期字段、实际字段和失败原因，确认所选模型可以返回要求的 JSON 字段。 |

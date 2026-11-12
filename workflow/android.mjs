@@ -22,7 +22,7 @@ function unavailable(required, summary) {
   return { status: 'skipped', summary };
 }
 
-export async function checkAndroid({ backendPort, ticket, serial, outputDir, required }) {
+export async function findAndroidDevice({ serial, required }) {
   const windowsSdk = windows && process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'Android', 'Sdk');
   const sdk = [process.env.ANDROID_HOME, process.env.ANDROID_SDK_ROOT, windowsSdk].find((dir) => dir && existsSync(dir));
   const adbName = windows ? 'adb.exe' : 'adb';
@@ -35,7 +35,10 @@ export async function checkAndroid({ backendPort, ticket, serial, outputDir, req
   if (discovery.error) throw new Error('ADB could not list devices. Check that Platform-Tools and the ADB server are working.');
 
   const devices = Array.from(discovery.stdout.matchAll(/^(\S+)\s+device\s*$/gm), (match) => match[1]);
-  if (devices.length === 0) return unavailable(required, 'No authorized Android device was found by ADB.');
+  if (devices.length === 0) {
+    return unavailable(required, 'No authorized Android device was found by ADB. ' +
+      'Unlock the phone, accept the USB debugging prompt, and run adb devices.');
+  }
   if (!serial && devices.length > 1) throw new Error('Multiple authorized Android devices are connected. Specify a device serial.');
   if (serial && !devices.includes(serial)) throw new Error('The requested Android device is not connected and authorized.');
   const selected = serial ?? devices[0];
@@ -44,7 +47,13 @@ export async function checkAndroid({ backendPort, ticket, serial, outputDir, req
   const qemu = await run(adb, ['-s', selected, 'shell', 'getprop', 'ro.kernel.qemu']);
   if (qemu.error) throw new Error('ADB could not verify the selected Android device type.');
   if (qemu.stdout.trim() === '1') return unavailable(required, 'An Android emulator cannot satisfy the physical-device check.');
+  return { adb, sdk, serial: selected };
+}
 
+export async function checkAndroid({ backendPort, ticket, serial, outputDir, required }) {
+  const device = await findAndroidDevice({ serial, required });
+  if (device.status === 'skipped') return device;
+  const { adb, sdk, serial: selected } = device;
   const ticketId = ticket?.id;
   const expectedDevice = ticket?.result?.device === null ? 'None' : ticket?.result?.device;
   const expectedCategory = ticket?.result?.category;

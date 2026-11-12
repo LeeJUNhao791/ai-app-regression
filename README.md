@@ -31,8 +31,8 @@ the browser installation step to install system dependencies too.
 
 The terminal and `artifacts/run-…/report.html` show **Basic demo passed. Android
 skipped by request (--android off).** The workflow badge shows **partial**
-because Android was excluded. To add a phone or a real model, follow the
-[step-by-step guide](docs/getting-started.md).
+because Android was excluded. Use the [step-by-step guide](docs/getting-started.md)
+to add an Android phone, a real model, or both.
 
 ## Example report
 

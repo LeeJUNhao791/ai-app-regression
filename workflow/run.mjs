@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as wait } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
-import { checkAndroid } from './android.mjs';
+import { checkAndroid, findAndroidDevice } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
 import { androidOffSummary, basicDemoSummary, renderReport, runStatus } from './report.mjs';
 import { checkWeb } from './web.mjs';
@@ -175,6 +175,25 @@ async function startBackend(modelUrl) {
 }
 
 async function runChecks() {
+  if (options.live && !options['model-url']) {
+    const configured = await stage('Live model configuration', () => {
+      const missing = ['LLM_BASE_URL', 'LLM_MODEL'].filter((name) => !process.env[name]?.trim());
+      if (missing.length) throw new Error(`Missing required live model settings: ${missing.join(', ')}.`);
+      return { value: true, summary: 'LLM_BASE_URL and LLM_MODEL are set.' };
+    });
+    if (!configured) return;
+  }
+
+  const androidRequired = options.android === 'required';
+  let serial = options.serial ?? process.env.ADB_SERIAL;
+  if (androidRequired) {
+    serial = await stage('Android authorization', async () => {
+      const device = await findAndroidDevice({ serial, required: true });
+      return { value: device.serial, summary: 'ADB found an authorized physical Android device.' };
+    });
+    if (!serial) return;
+  }
+
   const cases = JSON.parse(readFileSync(join(root, 'fixtures', 'tickets.json'), 'utf8'));
   const first = cases[0];
   const modelUrl = await stage('Linux model service', startModel, ['model.log']);
@@ -219,8 +238,7 @@ async function runChecks() {
     skipped('Android device', options.android === 'off' ? androidOffSummary : 'There was no verified work order.');
   } else {
     await stage('Android device', () => checkAndroid({
-      backendPort: backend.port, ticket, serial: options.serial ?? process.env.ADB_SERIAL,
-      outputDir, required: options.android === 'required',
+      backendPort: backend.port, ticket, serial, outputDir, required: androidRequired,
     }));
   }
 }
