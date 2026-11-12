@@ -9,6 +9,7 @@ import { parseArgs } from 'node:util';
 import { checkAndroid, findAndroidDevice } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
 import { loadFixtures } from './fixtures.mjs';
+import { loadProfile } from './profile.mjs';
 import { androidOffSummary, basicDemoSummary, renderReport, runStatus } from './report.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -16,7 +17,7 @@ const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 
 const providerKey = process.env.LLM_API_KEY;
 delete process.env.LLM_API_KEY;
 const usage = 'npm run check -- [--model-only] [--live] [--model-url URL] [--android auto|required|off] ' +
-  '[--serial SERIAL] [--fixtures FILE] [--output DIR] [--fault wrong-device]';
+  '[--serial SERIAL] [--profile FILE] [--fixtures FILE] [--output DIR] [--fault wrong-device]';
 const { values: options } = parseArgs({ options: {
   live: { type: 'boolean' },
   'model-only': { type: 'boolean' },
@@ -24,6 +25,7 @@ const { values: options } = parseArgs({ options: {
   android: { type: 'string', default: 'auto' },
   serial: { type: 'string' },
   fixtures: { type: 'string' },
+  profile: { type: 'string' },
   output: { type: 'string' },
   fault: { type: 'string' },
   help: { type: 'boolean' },
@@ -134,13 +136,14 @@ function skipped(name, summary) {
   run.steps.push({ name, status: 'skipped', summary, evidence: [] });
 }
 
-async function startModel() {
+async function startModel(profile) {
   let url = options['model-url'];
   let service;
   if (!url) {
     const port = await freePort();
     url = `http://127.0.0.1:${port}`;
     const env = { ...process.env, MODEL_MODE: run.mode, MOCK_FAULT: options.fault ?? '',
+      MODEL_PROFILE_JSON: profile ? JSON.stringify(profile) : '',
       PYTHONUNBUFFERED: '1' };
     if (run.mode === 'live' && providerKey) env.LLM_API_KEY = providerKey;
     if (process.platform === 'linux') {
@@ -152,7 +155,7 @@ async function startModel() {
         throw new Error('Start Docker Desktop with Linux containers, or supply --model-url for a Linux model service.');
       }
       container = `ai-app-regression-${randomUUID().slice(0, 12)}`;
-      const settings = ['MODEL_MODE', 'MOCK_FAULT', 'PYTHONUNBUFFERED'];
+      const settings = ['MODEL_MODE', 'MOCK_FAULT', 'MODEL_PROFILE_JSON', 'PYTHONUNBUFFERED'];
       if (run.mode === 'live') {
         settings.push('LLM_BASE_URL', 'LLM_MODEL', 'LLM_API_KEY', 'LLM_ENABLE_THINKING', 'LLM_JSON_MODE');
         settings.push('LLM_ATTEMPT_TIMEOUT_SECONDS');
@@ -172,19 +175,20 @@ async function startModel() {
     evidence: service ? ['model.log'] : [] };
 }
 
-async function startBackend(modelUrl) {
+async function startBackend(modelUrl, profile) {
   const port = await freePort();
   const url = `http://127.0.0.1:${port}`;
   const backend = launch(python, ['services/backend.py', '--port', String(port)],
-    { ...process.env, MODEL_URL: modelUrl, PYTHONUNBUFFERED: '1' }, 'backend.log');
+    { ...process.env, MODEL_URL: modelUrl, MODEL_PROFILE_JSON: profile ? JSON.stringify(profile) : '',
+      PYTHONUNBUFFERED: '1' }, 'backend.log');
   await waitForHealth(url, backend);
   return { value: { url, port }, summary: 'Work-order API is ready.', evidence: ['backend.log'] };
 }
 
-async function checkModel(cases, modelUrl, ticket) {
+async function checkModel(cases, modelUrl, profile, ticket) {
   if (!modelUrl) return skipped('Model accuracy and robustness', 'Linux model service was unavailable.');
   await stage('Model accuracy and robustness', async () => {
-    run.evaluation = await evaluate(cases, (text) => requestPrediction(modelUrl, text, requestSignal(40_000)));
+    run.evaluation = await evaluate(cases, (text) => requestPrediction(modelUrl, text, requestSignal(40_000)), profile);
     const { accuracy, robustness } = run.evaluation;
     const caseSummary = `Accuracy ${accuracy.passed}/${accuracy.total}. Robustness ${robustness.passed}/${robustness.total}.`;
     const ticketCorrect = ticket && labelsMatch(ticket.result, cases[0].expected);
@@ -196,7 +200,9 @@ async function checkModel(cases, modelUrl, ticket) {
 }
 
 async function runChecks() {
-  const cases = loadFixtures(resolve(options.fixtures ?? join(root, 'fixtures', 'tickets.json')));
+  const profile = options.profile === undefined ? undefined : loadProfile(resolve(options.profile));
+  if (profile && !options.live) throw new Error('--profile requires --live. The fixed-response demo uses pump rules.');
+  const cases = loadFixtures(resolve(options.fixtures ?? join(root, 'fixtures', 'tickets.json')), profile);
   if (options.live && !options['model-url']) {
     const configured = await stage('Live model configuration', () => {
       const missing = ['LLM_BASE_URL', 'LLM_MODEL'].filter((name) => !process.env[name]?.trim());
@@ -217,13 +223,13 @@ async function runChecks() {
   }
 
   const first = cases[0];
-  const modelUrl = await stage('Linux model service', startModel, ['model.log']);
+  const modelUrl = await stage('Linux model service', () => startModel(profile), ['model.log']);
   if (modelOnly) {
-    await checkModel(cases, modelUrl);
+    await checkModel(cases, modelUrl, profile);
     return;
   }
   const backend = modelUrl
-    ? await stage('Backend startup', () => startBackend(modelUrl), ['backend.log'])
+    ? await stage('Backend startup', () => startBackend(modelUrl, profile), ['backend.log'])
     : undefined;
   if (!modelUrl) skipped('Backend startup', 'Linux model service was unavailable.');
 
@@ -248,7 +254,7 @@ async function runChecks() {
   }) : undefined;
   if (!web) skipped('Backend API', 'There was no work order from the Web step.');
 
-  await checkModel(cases, modelUrl, ticket);
+  await checkModel(cases, modelUrl, profile, ticket);
 
   if (!ticket || options.android === 'off') {
     skipped('Android device', options.android === 'off' ? androidOffSummary : 'There was no verified work order.');

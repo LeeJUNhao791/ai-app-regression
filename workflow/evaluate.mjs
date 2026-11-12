@@ -1,3 +1,5 @@
+import { defaultProfile, validDevice } from './profile.mjs';
+
 const responseFailures = new Map([
   ['provider_timeout', 'Provider request timed out.'],
   ['provider_connection_closed', 'Provider closed the connection before sending a complete response.'],
@@ -43,20 +45,14 @@ export function labelsMatch(actual, expected) {
   return actual?.device === expected.device && actual.category === expected.category;
 }
 
-export const issueCategories = ['noise', 'leak', 'overheat', 'unknown'];
-
-export function validDevice(value) {
-  return value === null || (typeof value === 'string' && /^pump-[1-9][0-9]*$/.test(value));
-}
-
-async function checkCase(predict, text, expected, originalPassed = true) {
+async function checkCase(predict, text, expected, profile, originalPassed = true) {
   const started = performance.now();
   let actual = null;
   let failureReason;
   try {
     const result = await predict(text);
     const { device, category } = result ?? {};
-    if (result && Object.keys(result).length === 2 && validDevice(device) && issueCategories.includes(category)) {
+    if (result && Object.keys(result).length === 2 && validDevice(device, profile) && profile.categories.includes(category)) {
       actual = { device, category };
     } else {
       failureReason = 'Prediction fields failed validation.';
@@ -73,19 +69,19 @@ async function checkCase(predict, text, expected, originalPassed = true) {
     passed: matches && originalPassed, failureReason: failureReason ?? null };
 }
 
-export async function evaluate(cases, predict) {
+export async function evaluate(cases, predict, profile = defaultProfile) {
   const accuracy = { passed: 0, total: 0 };
   const robustness = { passed: 0, total: 0 };
   const rows = [];
 
   for (const { id, text, expected, variants } of cases) {
-    const result = await checkCase(predict, text, expected);
+    const result = await checkCase(predict, text, expected, profile);
     rows.push({ id, kind: 'Accuracy', text, expected, ...result });
     accuracy.total += 1;
     accuracy.passed += Number(result.passed);
 
     for (const [index, variant] of variants.entries()) {
-      const variantResult = await checkCase(predict, variant, expected, result.passed);
+      const variantResult = await checkCase(predict, variant, expected, profile, result.passed);
       rows.push({ id: `${id}.${index + 1}`, kind: 'Robustness', text: variant,
         expected, ...variantResult });
       robustness.total += 1;

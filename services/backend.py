@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from service_http import (
     MODEL_SERVICE_TIMEOUT_SECONDS, UPSTREAM_ERRORS, JsonHandler, UpstreamStatusError,
-    checked_result, post_json, serve,
+    checked_result, load_profile, post_json, serve,
 )
 
 
@@ -44,7 +44,7 @@ class BackendHandler(JsonHandler):
         try:
             result = checked_result(post_json(
                 self.server.predict_url, {"text": text}, timeout=MODEL_SERVICE_TIMEOUT_SECONDS,
-            ))
+            ), self.server.profile)
         except TimeoutError:
             return self.write_json(504, {"error": "upstream_timeout"})
         except UpstreamStatusError as error:
@@ -61,7 +61,9 @@ class BackendHandler(JsonHandler):
 
 
 def create_server(host, port):
+    profile = load_profile(os.environ.get("MODEL_PROFILE_JSON"))
     server = ThreadingHTTPServer((host, port), BackendHandler)
+    server.profile = profile
     server.predict_url = os.environ.get("MODEL_URL", "http://127.0.0.1:8001").rstrip("/") + "/predict"
     server.tickets = {}
     return server

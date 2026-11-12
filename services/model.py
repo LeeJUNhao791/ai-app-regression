@@ -9,7 +9,7 @@ from time import monotonic
 
 from service_http import (
     PROVIDER_TIMEOUT_SECONDS, UPSTREAM_ERRORS, JsonHandler, PredictionSchemaError,
-    UpstreamStatusError, checked_result, post_json, serve,
+    UpstreamStatusError, checked_result, load_profile, post_json, serve,
 )
 
 
@@ -57,12 +57,13 @@ class PredictionResponseError(ValueError):
 
 def live_prediction(
     text, endpoint, model, api_key, enable_thinking=None, json_mode=False,
-    attempt_timeout=PROVIDER_TIMEOUT_SECONDS,
+    attempt_timeout=PROVIDER_TIMEOUT_SECONDS, *, profile=None,
 ):
     headers = {"Authorization": "Bearer " + api_key} if api_key else None
     payload = {
         "model": model,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": text}],
+        "messages": [{"role": "system", "content": profile["system_prompt"] if profile else SYSTEM_PROMPT},
+                     {"role": "user", "content": text}],
     }
     if enable_thinking is not None:
         payload["enable_thinking"] = enable_thinking
@@ -92,7 +93,7 @@ def live_prediction(
         value = json.loads(block[2] if block else content)
     except (ValueError, RecursionError) as error:
         raise PredictionResponseError("invalid_model_json") from error
-    return checked_result(value)
+    return checked_result(value, profile)
 
 
 class ModelHandler(JsonHandler):
@@ -109,7 +110,7 @@ class ModelHandler(JsonHandler):
             return
         try:
             if self.server.mode == "live":
-                prediction = live_prediction(text, *self.server.live_config)
+                prediction = live_prediction(text, *self.server.live_config, profile=self.server.profile)
             else:
                 prediction = mock_prediction(text, self.server.wrong_device)
         except TimeoutError:
@@ -139,6 +140,9 @@ def optional_boolean(name):
 
 def create_server(host, port):
     mode = "live" if os.environ.get("MODEL_MODE") == "live" else "mock"
+    profile = load_profile(os.environ.get("MODEL_PROFILE_JSON"))
+    if profile and mode != "live":
+        raise ValueError("MODEL_PROFILE_JSON requires MODEL_MODE=live.")
     live_config = None
     if mode == "live":
         base_url = os.environ.get("LLM_BASE_URL", "").rstrip("/")
@@ -157,6 +161,7 @@ def create_server(host, port):
         )
     server = ThreadingHTTPServer((host, port), ModelHandler)
     server.mode = mode
+    server.profile = profile
     server.live_config = live_config
     server.wrong_device = os.environ.get("MOCK_FAULT") == "wrong-device"
     return server

@@ -46,6 +46,8 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 真实模型与 CI 的用法见[独立模型评测](docs/getting-started.zh-CN.md#独立模型评测)。
 
+用 `--profile` 可自定义系统提示词、设备 ID 格式和允许的类别。[风机示例](docs/getting-started.zh-CN.md#领域配置)演示了 `fan-1 / vibration`。
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。

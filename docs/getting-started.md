@@ -72,6 +72,30 @@ project's Linux model service. The HTML and JSON reports show the expected and
 observed labels, duration, and verdict for each row. CI gets exit 0 when all
 cases pass and exit 1 when evaluation or service startup fails.
 
+## Domain profile
+
+Copy the [fan profile](../fixtures/fan.profile.json) and its
+[labelled cases](../fixtures/fan-tickets.example.json). Configure a provider as
+described in [Live model only](#live-model-only), then run:
+
+```sh
+node workflow/run.mjs --model-only --live --profile fixtures/fan.profile.json --fixtures fixtures/fan-tickets.example.json
+```
+
+- `system_prompt` is the system message sent to the provider. The prediction
+  still uses the JSON fields `device` and `category`.
+- `device_id_pattern` must match the whole device ID. Use regular expression
+  syntax common to JavaScript and Python, such as `fan-[1-9][0-9]*`.
+  IDs and category labels use ASCII letters, digits, underscores, and hyphens.
+  A missing device can be represented by `null`.
+- `categories` lists the allowed labels. Predictions outside this list fail
+  evaluation, as do predictions with an invalid device ID.
+
+The profile works with live model-only and end-to-end runs. For a separate
+`--model-url` service, configure that process with the same JSON in
+`MODEL_PROFILE_JSON`. The built-in fixed-response demo uses the default pump
+profile.
+
 ## Choose a run mode
 
 | Mode | Use it to check |

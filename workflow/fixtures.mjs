@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { issueCategories, validDevice } from './evaluate.mjs';
+import { defaultProfile, validDevice } from './profile.mjs';
 
 const caseFields = ['id', 'text', 'expected', 'variants'];
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-export function loadFixtures(path) {
+export function loadFixtures(path, profile = defaultProfile) {
   const invalid = (location, message) => {
     throw new Error(`Fixtures "${path}", ${location}: ${message}`);
   };
@@ -50,9 +50,11 @@ export function loadFixtures(path) {
     const text = checkText(entry.text, 'text');
     const { expected, variants = [] } = entry;
     if (!isObject(expected)) bad('expected', 'expected an object with device and category.');
-    if (!validDevice(expected.device)) bad('expected.device', 'expected null or a pump-N ID such as pump-3.');
-    if (!issueCategories.includes(expected.category)) {
-      bad('expected.category', `expected one of ${issueCategories.join(', ')}.`);
+    if (!validDevice(expected.device, profile)) {
+      bad('expected.device', `expected null or an identifier matching ${profile.device_id_pattern}.`);
+    }
+    if (!profile.categories.includes(expected.category)) {
+      bad('expected.category', `expected one of ${profile.categories.join(', ')}.`);
     }
     const extraExpected = Object.keys(expected).find((field) => field !== 'device' && field !== 'category');
     if (extraExpected !== undefined) bad(`expected.${JSON.stringify(extraExpected)}`, 'unknown field.');

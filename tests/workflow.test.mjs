@@ -2,6 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluate, requestPrediction } from '../workflow/evaluate.mjs';
 import { renderReport, runStatus } from '../workflow/report.mjs';
+import { loadFixtures } from '../workflow/fixtures.mjs';
+import { loadProfile } from '../workflow/profile.mjs';
+import { fileURLToPath } from 'node:url';
+
+test('fan fixtures and predictions use the configured ID format and category list', async () => {
+  const profile = loadProfile(fileURLToPath(new URL('../fixtures/fan.profile.json', import.meta.url)));
+  const file = fileURLToPath(new URL('../fixtures/fan-tickets.example.json', import.meta.url));
+  assert.throws(() => loadFixtures(file), /expected\.device/);
+  const cases = loadFixtures(file, profile);
+  const expected = { device: 'fan-1', category: 'vibration' };
+  const good = await evaluate(cases, async () => expected, profile);
+  assert.ok(good.rows.every(({ passed }) => passed));
+  for (const actual of [{ ...expected, category: 'noise' }, { ...expected, device: 'pump-1' }]) {
+    const bad = await evaluate(cases, async () => actual, profile);
+    assert.ok(bad.rows.every((row) => !row.passed && row.actual === null &&
+      row.failureReason === 'Prediction fields failed validation.'));
+  }
+});
 
 test('robustness requires the correct label even when wrong predictions agree', async () => {
   const expected = { device: 'pump-3', category: 'noise' };

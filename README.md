@@ -58,6 +58,10 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 See [model-only evaluation](docs/getting-started.md#model-only-evaluation) for live models and CI.
 
+For another domain, pass `--profile` with your system prompt, device ID
+pattern, and allowed categories. The [fan example](docs/getting-started.md#domain-profile)
+uses `fan-1 / vibration`.
+
 ## What the report verifies
 
 - **Web and API.** Playwright submits the form in Chromium. The runner

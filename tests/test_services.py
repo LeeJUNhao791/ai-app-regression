@@ -56,7 +56,10 @@ class ServiceTests(unittest.TestCase):
 
         with patch.dict(os.environ, environment, clear=True):
             model = self.start_server(create_model("127.0.0.1", 0))
-        with patch.dict(os.environ, {"MODEL_URL": model_url or f"http://127.0.0.1:{model}"}, clear=True):
+        with patch.dict(os.environ, {
+            "MODEL_URL": model_url or f"http://127.0.0.1:{model}",
+            "MODEL_PROFILE_JSON": environment.get("MODEL_PROFILE_JSON", ""),
+        }, clear=True):
             backend = self.start_server(create_backend("127.0.0.1", 0))
         return backend, model
 
@@ -75,6 +78,30 @@ class ServiceTests(unittest.TestCase):
         })
         self.assertEqual(request(backend, f"/api/tickets/{ticket['id']}"), (200, ticket))
         self.assertEqual(request(backend, f"/api/tickets/{uuid.uuid4()}")[0], 404)
+
+    def test_fan_profile_controls_prompt_and_both_services_validate_the_labels(self):
+        fixture = ThreadingHTTPServer(("127.0.0.1", 0), ChatCompletionsFixture)
+        fixture.status = 200
+        fixture.reply = '{"device":"fan-1","category":"vibration"}'
+        provider = self.start_server(fixture)
+        profile = {
+            "system_prompt": "Extract fan IDs and classify vibration in a JSON object.",
+            "device_id_pattern": "fan-[1-9][0-9]*",
+            "categories": ["vibration", "unknown"],
+        }
+        backend, model = self.start_demo(
+            MODEL_MODE="live", LLM_BASE_URL=f"http://127.0.0.1:{provider}/v1",
+            LLM_MODEL="fixture", MODEL_PROFILE_JSON=json.dumps(profile),
+        )
+        body = {"text": "Fan 1 vibrates"}
+        status, ticket = request(backend, "/api/tickets", body)
+        self.assertEqual(status, 201)
+        self.assertEqual(ticket["result"], {"device": "fan-1", "category": "vibration"})
+        self.assertEqual(fixture.received[1]["messages"][0], {"role": "system", "content": profile["system_prompt"]})
+        fixture.reply = '{"device":"fan-1","category":"noise"}'
+        self.assertEqual(request(model, "/predict", body), (502, {"error": "invalid_category"}))
+        fixture.reply = '{"device":"pump-1","category":"vibration"}'
+        self.assertEqual(request(model, "/predict", body), (502, {"error": "invalid_device"}))
 
     def test_rejects_invalid_and_oversized_text(self):
         backend, model = self.start_demo()

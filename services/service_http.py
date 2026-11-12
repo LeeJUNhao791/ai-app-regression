@@ -26,13 +26,38 @@ class PredictionSchemaError(ValueError):
     pass
 
 
-def checked_result(value):
+def load_profile(raw):
+    if not raw:
+        return None
+    profile = json.loads(raw)
+    if not isinstance(profile, dict) or set(profile) != {"system_prompt", "device_id_pattern", "categories"}:
+        raise ValueError("MODEL_PROFILE_JSON requires system_prompt, device_id_pattern, and categories.")
+    prompt, pattern, categories = (profile[key] for key in ("system_prompt", "device_id_pattern", "categories"))
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError("MODEL_PROFILE_JSON system_prompt must be non-empty.")
+    if not isinstance(pattern, str) or not pattern.strip():
+        raise ValueError("MODEL_PROFILE_JSON device_id_pattern must be non-empty.")
+    try:
+        profile["device_id_pattern"] = re.compile(pattern, re.ASCII)
+    except re.error as error:
+        raise ValueError("Invalid MODEL_PROFILE_JSON device_id_pattern.") from error
+    if (not isinstance(categories, list) or not categories or
+            not all(isinstance(label, str) and re.fullmatch(r"[A-Za-z0-9_-]+", label) for label in categories) or
+            len(set(categories)) != len(categories)):
+        raise ValueError("MODEL_PROFILE_JSON categories must be distinct ASCII labels.")
+    return profile
+
+
+def checked_result(value, profile=None):
     if not isinstance(value, dict) or set(value) != {"device", "category"}:
         raise PredictionSchemaError("invalid_prediction_fields")
     device = value["device"]
-    if device is not None and (not isinstance(device, str) or not DEVICE_ID.fullmatch(device)):
+    device_id = profile["device_id_pattern"] if profile else DEVICE_ID
+    categories = profile["categories"] if profile else CATEGORIES
+    if device is not None and (not isinstance(device, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", device)
+                               or not device_id.fullmatch(device)):
         raise PredictionSchemaError("invalid_device")
-    if value["category"] not in CATEGORIES:
+    if value["category"] not in categories:
         raise PredictionSchemaError("invalid_category")
     return value
 

@@ -46,6 +46,20 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 接入真实模型时，按[只接真实模型](#只接真实模型)设置环境变量，再加 `--live`。若已有本项目的 Linux 模型服务实例，可通过 `--model-url URL` 连接。HTML 和 JSON 报告逐条记录预期、实测、耗时和判定。样例全部通过时返回退出码 0，评测或服务启动失败时返回 1，可用于 CI。
 
+## 领域配置
+
+复制[风机配置](../fixtures/fan.profile.json)和[标注样例](../fixtures/fan-tickets.example.json)。按[只接真实模型](#只接真实模型)配置服务商，再运行以下命令。
+
+```sh
+node workflow/run.mjs --model-only --live --profile fixtures/fan.profile.json --fixtures fixtures/fan-tickets.example.json
+```
+
+- `system_prompt` 是发给模型服务商的系统提示词。预测结果仍使用 JSON 字段 `device` 和 `category`。
+- `device_id_pattern` 必须匹配完整设备 ID。请使用 JavaScript 和 Python 都支持的正则语法，例如 `fan-[1-9][0-9]*`。设备 ID 和类别标签使用 ASCII 字母、数字、下划线和连字符。设备未知时可返回 `null`。
+- `categories` 列出允许的类别。预测类别超出列表或设备 ID 格式不符时，该样例会判失败。
+
+领域配置适用于独立真实模型评测和端到端流程。使用 `--model-url` 连接独立部署的服务时，请将同一份 JSON 通过 `MODEL_PROFILE_JSON` 传给该服务。内置固定响应演示使用默认泵配置。
+
 ## 选择跑法
 
 | 跑法 | 验证内容 |

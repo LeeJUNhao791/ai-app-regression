@@ -1,0 +1,5 @@
+{
+  "system_prompt": "Classify fan maintenance tickets. Return exactly one JSON object with device and category. Use fan-N for a numbered fan, or null if no device can be identified. Use vibration for shaking or abnormal vibration, and unknown when the issue cannot be classified.",
+  "device_id_pattern": "fan-[1-9][0-9]*",
+  "categories": ["vibration", "unknown"]
+}
