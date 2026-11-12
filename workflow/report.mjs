@@ -25,6 +25,8 @@ const label = (result) => escape(result ? `${result.device ?? '—'} / ${result.
 export function renderReport(run) {
   const status = runStatus(run.steps);
   const summary = basicDemoSummary(run);
+  const scope = run.scope === 'model-only' ? 'Scope <strong>Model only</strong>'
+    : `Ticket <code>${escape(run.ticketId ?? 'Not created')}</code>`;
   const steps = run.steps.map(({ name, status, summary, evidence }) => `
     <li><span class="badge ${escape(status)}">${escape(status)}</span><div>
       <strong>${escape(name)}</strong><p>${escape(summary)}</p>
@@ -65,7 +67,7 @@ export function renderReport(run) {
   @media(max-width:560px){main{padding:16px}dl{grid-template-columns:1fr}dl div+div{border-left:0;border-top:1px solid var(--line)}}
 </style>
 <header><h1>AI App Regression</h1>
-<p>${escape(run.startedAt)} · Model mode <strong>${escape(run.mode)}</strong> · Ticket <code>${escape(run.ticketId ?? 'Not created')}</code></p></header>
+<p>${escape(run.startedAt)} · Model mode <strong>${escape(run.mode)}</strong> · ${scope}</p></header>
 <main>
   ${summary ? `<p class="demo-summary">${escape(summary)}</p>` : ''}
   <dl aria-label="Results">

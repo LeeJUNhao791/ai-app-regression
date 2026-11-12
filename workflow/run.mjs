@@ -10,16 +10,16 @@ import { checkAndroid, findAndroidDevice } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
 import { loadFixtures } from './fixtures.mjs';
 import { androidOffSummary, basicDemoSummary, renderReport, runStatus } from './report.mjs';
-import { checkWeb } from './web.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
 const providerKey = process.env.LLM_API_KEY;
 delete process.env.LLM_API_KEY;
-const usage = 'npm run check -- [--live] [--model-url URL] [--android auto|required|off] ' +
+const usage = 'npm run check -- [--model-only] [--live] [--model-url URL] [--android auto|required|off] ' +
   '[--serial SERIAL] [--fixtures FILE] [--output DIR] [--fault wrong-device]';
 const { values: options } = parseArgs({ options: {
   live: { type: 'boolean' },
+  'model-only': { type: 'boolean' },
   'model-url': { type: 'string' },
   android: { type: 'string', default: 'auto' },
   serial: { type: 'string' },
@@ -36,9 +36,14 @@ if (!['auto', 'required', 'off'].includes(options.android) ||
     (options.fault && (options.fault !== 'wrong-device' || options.live || options['model-url']))) {
   throw new Error(usage);
 }
+const modelOnly = options['model-only'];
+if (modelOnly && (options.android === 'required' || options.serial !== undefined)) {
+  throw new Error('--model-only cannot be combined with --android required or --serial.');
+}
 
 const run = { startedAt: new Date().toISOString(), mode: options.live ? 'live' : 'mock',
   ticketId: null, steps: [], evaluation: null };
+if (modelOnly) run.scope = 'model-only';
 const outputDir = resolve(options.output ?? join(root, 'artifacts', `run-${randomUUID().slice(0, 8)}`));
 mkdirSync(dirname(outputDir), { recursive: true });
 mkdirSync(outputDir);
@@ -176,6 +181,20 @@ async function startBackend(modelUrl) {
   return { value: { url, port }, summary: 'Work-order API is ready.', evidence: ['backend.log'] };
 }
 
+async function checkModel(cases, modelUrl, ticket) {
+  if (!modelUrl) return skipped('Model accuracy and robustness', 'Linux model service was unavailable.');
+  await stage('Model accuracy and robustness', async () => {
+    run.evaluation = await evaluate(cases, (text) => requestPrediction(modelUrl, text, requestSignal(40_000)));
+    const { accuracy, robustness } = run.evaluation;
+    const caseSummary = `Accuracy ${accuracy.passed}/${accuracy.total}. Robustness ${robustness.passed}/${robustness.total}.`;
+    const ticketCorrect = ticket && labelsMatch(ticket.result, cases[0].expected);
+    const passed = accuracy.passed === accuracy.total && robustness.passed === robustness.total && (!ticket || ticketCorrect);
+    const ticketSummary = ticket ? (ticketCorrect ? 'Work-order labels match.' : 'Work-order labels differ from the reference.')
+      : 'Work-order labels were unavailable.';
+    return { status: passed ? 'passed' : 'failed', summary: modelOnly ? caseSummary : `${caseSummary} ${ticketSummary}` };
+  });
+}
+
 async function runChecks() {
   const cases = loadFixtures(resolve(options.fixtures ?? join(root, 'fixtures', 'tickets.json')));
   if (options.live && !options['model-url']) {
@@ -199,12 +218,17 @@ async function runChecks() {
 
   const first = cases[0];
   const modelUrl = await stage('Linux model service', startModel, ['model.log']);
+  if (modelOnly) {
+    await checkModel(cases, modelUrl);
+    return;
+  }
   const backend = modelUrl
     ? await stage('Backend startup', () => startBackend(modelUrl), ['backend.log'])
     : undefined;
   if (!modelUrl) skipped('Backend startup', 'Linux model service was unavailable.');
 
   const web = backend ? await stage('Web frontend', async () => {
+    const { checkWeb } = await import('./web.mjs');
     const result = await checkWeb({ baseUrl: backend.url, text: first.text, outputDir });
     run.ticketId = result.ticket.id;
     return { value: result.ticket, summary: 'Chromium submitted the work order and displayed the API result.',
@@ -224,17 +248,7 @@ async function runChecks() {
   }) : undefined;
   if (!web) skipped('Backend API', 'There was no work order from the Web step.');
 
-  if (modelUrl) {
-    await stage('Model accuracy and robustness', async () => {
-      run.evaluation = await evaluate(cases, (text) => requestPrediction(modelUrl, text, requestSignal(40_000)));
-      const { accuracy, robustness } = run.evaluation;
-      const caseSummary = `Accuracy ${accuracy.passed}/${accuracy.total}. Robustness ${robustness.passed}/${robustness.total}.`;
-      const ticketCorrect = ticket && labelsMatch(ticket.result, first.expected);
-      const summary = `${caseSummary} ${ticket ? (ticketCorrect ? 'Work-order labels match.' : 'Work-order labels differ from the reference.') : 'Work-order labels were unavailable.'}`;
-      const passed = accuracy.passed === accuracy.total && robustness.passed === robustness.total && (!ticket || ticketCorrect);
-      return { status: passed ? 'passed' : 'failed', summary };
-    });
-  } else skipped('Model accuracy and robustness', 'Linux model service was unavailable.');
+  await checkModel(cases, modelUrl, ticket);
 
   if (!ticket || options.android === 'off') {
     skipped('Android device', options.android === 'off' ? androidOffSummary : 'There was no verified work order.');
@@ -255,6 +269,7 @@ try {
   const status = runStatus(run.steps);
   writeFileSync(join(outputDir, 'report.html'), renderReport(run));
   writeFileSync(join(outputDir, 'report.json'), `${JSON.stringify({ ...run, status }, null, 2)}\n`);
+  if (modelOnly) console.log('Scope: Model only.');
   for (const step of run.steps) console.log(`${step.status.toUpperCase()}  ${step.name} — ${step.summary}`);
   const summary = basicDemoSummary(run);
   if (summary) console.log(summary);

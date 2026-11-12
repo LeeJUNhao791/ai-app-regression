@@ -38,6 +38,14 @@ node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android 
 
 复制模板，修改工单文本和预期结果。报告逐条显示预期值、实测值、耗时和判定。详见[样例格式与校验](docs/getting-started.zh-CN.md#使用自己的样例)。
 
+只跑样例的模型评测时，使用以下命令。
+
+```sh
+node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.json
+```
+
+真实模型与 CI 的用法见[独立模型评测](docs/getting-started.zh-CN.md#独立模型评测)。
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。

@@ -50,6 +50,14 @@ Copy the template and edit the inputs and expected results. The report shows
 the expected and observed labels, duration, and verdict for each row.
 See [sample format and validation](docs/getting-started.md#use-your-own-samples).
 
+Evaluate the same samples without starting the demo app.
+
+```sh
+node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.json
+```
+
+See [model-only evaluation](docs/getting-started.md#model-only-evaluation) for live models and CI.
+
 ## What the report verifies
 
 - **Web and API.** Playwright submits the form in Chromium. The runner

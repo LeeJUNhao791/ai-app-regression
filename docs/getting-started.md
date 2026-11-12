@@ -56,6 +56,22 @@ predictions with your expected results and shows a duration and verdict per row.
 If validation fails, the terminal names the file and, for a field error, the
 sample and field. The runner exits before starting services.
 
+## Model-only evaluation
+
+Use Node.js 22+. To start the model service locally, use Python 3.10+ on Linux
+or Docker Desktop in Linux container mode on Windows and macOS.
+The command only runs the Linux model service and the labelled evaluation.
+
+```sh
+node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.json
+```
+
+For a real model, set the variables in [Live model only](#live-model-only) and
+add `--live`. Use `--model-url URL` to connect to an existing instance of the
+project's Linux model service. The HTML and JSON reports show the expected and
+observed labels, duration, and verdict for each row. CI gets exit 0 when all
+cases pass and exit 1 when evaluation or service startup fails.
+
 ## Choose a run mode
 
 | Mode | Use it to check |

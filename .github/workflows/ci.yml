@@ -28,6 +28,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: python -B -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Run model-only evaluation before installing Chromium
+        run: node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.json --output artifacts/model-only
       - run: npx playwright install chromium --only-shell --with-deps
       - name: Run the workflow and verify the failure example
         shell: bash

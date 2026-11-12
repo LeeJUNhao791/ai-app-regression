@@ -36,6 +36,16 @@ node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android 
 
 第一条原始样例用于端到端工单验收，模型评测会跑完所有原始样例和变体。固定响应模式由内置规则给出预测。报告会逐条对比预期值和实测值，并记录耗时和判定。文件校验失败时，终端会指出文件，字段错误还会标出样例和字段。脚本会在启动服务前退出。
 
+## 独立模型评测
+
+使用 Node.js 22+。本机启动模型服务时，Linux 需要 Python 3.10+，Windows 和 macOS 需要 Docker Desktop 的 Linux 容器模式。该命令只运行 Linux 模型服务和标注样例评测。
+
+```sh
+node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.json
+```
+
+接入真实模型时，按[只接真实模型](#只接真实模型)设置环境变量，再加 `--live`。若已有本项目的 Linux 模型服务实例，可通过 `--model-url URL` 连接。HTML 和 JSON 报告逐条记录预期、实测、耗时和判定。样例全部通过时返回退出码 0，评测或服务启动失败时返回 1，可用于 CI。
+
 ## 选择跑法
 
 | 跑法 | 验证内容 |
