@@ -2,9 +2,15 @@ import json
 import os
 import platform
 import re
+from http.client import HTTPException, IncompleteRead
 from http.server import ThreadingHTTPServer
+from ssl import SSLCertVerificationError, SSLEOFError
+from time import monotonic
 
-from service_http import UPSTREAM_ERRORS, JsonHandler, checked_result, post_json, serve
+from service_http import (
+    PROVIDER_TIMEOUT_SECONDS, UPSTREAM_ERRORS, JsonHandler, PredictionSchemaError,
+    UpstreamStatusError, checked_result, post_json, serve,
+)
 
 
 PUMP = re.compile(
@@ -14,6 +20,7 @@ PUMP = re.compile(
     re.IGNORECASE,
 )
 CHINESE_DIGITS = str.maketrans("一二两三四五六七八九", "1223456789")
+JSON_CODE_BLOCK = re.compile(r"(`{3,}|~{3,})(?:json)?[ \t]*\r?\n(.*?)\r?\n[ \t]*\1", re.IGNORECASE | re.DOTALL)
 KEYWORDS = {
     "noise": ("异响", "异想", "噪音", "噪声", "noise", "noisy", "rattle", "rattling"),
     "leak": ("漏水", "漏油", "渗漏", "泄漏", "leak"),
@@ -44,20 +51,48 @@ def mock_prediction(text, wrong_device):
     return {"device": device, "category": category}
 
 
-def live_prediction(text, endpoint, model, api_key):
+class PredictionResponseError(ValueError):
+    pass
+
+
+def live_prediction(
+    text, endpoint, model, api_key, enable_thinking=None, json_mode=False,
+    attempt_timeout=PROVIDER_TIMEOUT_SECONDS,
+):
     headers = {"Authorization": "Bearer " + api_key} if api_key else None
     payload = {
         "model": model,
         "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": text}],
     }
-    response = post_json(endpoint, payload, timeout=10, headers=headers)
+    if enable_thinking is not None:
+        payload["enable_thinking"] = enable_thinking
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+    started = monotonic()
+    try:
+        try:
+            response = post_json(endpoint, payload, timeout=attempt_timeout, headers=headers)
+        except (OSError, HTTPException) as error:
+            remaining = PROVIDER_TIMEOUT_SECONDS - (monotonic() - started)
+            if isinstance(error, SSLCertVerificationError) or remaining <= 0:
+                raise
+            response = post_json(endpoint, payload, timeout=remaining, headers=headers)
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as error:
+        raise PredictionResponseError("invalid_provider_response") from error
     try:
         content = response["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
-            raise ValueError("Invalid model message")
-        return checked_result(json.loads(content))
     except (KeyError, IndexError, TypeError) as exc:
-        raise ValueError("Invalid chat completions response") from exc
+        raise PredictionResponseError("invalid_provider_response") from exc
+    if content is None or (isinstance(content, str) and not content.strip()):
+        raise PredictionResponseError("empty_model_content")
+    if not isinstance(content, str):
+        raise PredictionResponseError("invalid_provider_response")
+    block = JSON_CODE_BLOCK.fullmatch(content.strip())
+    try:
+        value = json.loads(block[2] if block else content)
+    except (ValueError, RecursionError) as error:
+        raise PredictionResponseError("invalid_model_json") from error
+    return checked_result(value)
 
 
 class ModelHandler(JsonHandler):
@@ -78,10 +113,28 @@ class ModelHandler(JsonHandler):
             else:
                 prediction = mock_prediction(text, self.server.wrong_device)
         except TimeoutError:
-            return self.write_json(504, {"error": "upstream_timeout"})
+            return self.write_json(504, {"error": "provider_timeout"})
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, IncompleteRead, SSLEOFError):
+            return self.write_json(502, {"error": "provider_connection_closed"})
+        except UpstreamStatusError as error:
+            status = 504 if error.status == 504 else 502
+            return self.write_json(status, {"error": "provider_http_error", "provider_status": error.status})
+        except (PredictionResponseError, PredictionSchemaError) as error:
+            return self.write_json(502, {"error": str(error)})
+        except HTTPException:
+            return self.write_json(502, {"error": "provider_protocol_error"})
+        except OSError:
+            return self.write_json(502, {"error": "provider_network_error"})
         except UPSTREAM_ERRORS:
             return self.write_json(502, {"error": "upstream_unavailable"})
         return self.write_json(200, prediction)
+
+
+def optional_boolean(name):
+    setting = os.environ.get(name, "").strip().lower()
+    if setting not in ("", "true", "false"):
+        raise ValueError(f"{name} must be true or false")
+    return setting == "true" if setting else None
 
 
 def create_server(host, port):
@@ -92,7 +145,16 @@ def create_server(host, port):
         model = os.environ.get("LLM_MODEL", "")
         if not base_url or not model:
             raise ValueError("Live mode requires LLM_BASE_URL and LLM_MODEL")
-        live_config = (base_url + "/chat/completions", model, os.environ.get("LLM_API_KEY"))
+        try:
+            attempt_timeout = int(os.environ.get("LLM_ATTEMPT_TIMEOUT_SECONDS") or PROVIDER_TIMEOUT_SECONDS)
+        except ValueError:
+            attempt_timeout = 0
+        if not 1 <= attempt_timeout <= PROVIDER_TIMEOUT_SECONDS:
+            raise ValueError("LLM_ATTEMPT_TIMEOUT_SECONDS must be an integer from 1 to 30")
+        live_config = (
+            base_url + "/chat/completions", model, os.environ.get("LLM_API_KEY"),
+            optional_boolean("LLM_ENABLE_THINKING"), optional_boolean("LLM_JSON_MODE"), attempt_timeout,
+        )
     server = ThreadingHTTPServer((host, port), ModelHandler)
     server.mode = mode
     server.live_config = live_config

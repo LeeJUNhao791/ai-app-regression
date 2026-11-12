@@ -3,7 +3,10 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from uuid import uuid4
 
-from service_http import UPSTREAM_ERRORS, JsonHandler, checked_result, post_json, serve
+from service_http import (
+    MODEL_SERVICE_TIMEOUT_SECONDS, UPSTREAM_ERRORS, JsonHandler, UpstreamStatusError,
+    checked_result, post_json, serve,
+)
 
 
 WEB = Path(__file__).resolve().parents[1] / "web"
@@ -39,9 +42,15 @@ class BackendHandler(JsonHandler):
         if text is None:
             return
         try:
-            result = checked_result(post_json(self.server.predict_url, {"text": text}, timeout=12))
+            result = checked_result(post_json(
+                self.server.predict_url, {"text": text}, timeout=MODEL_SERVICE_TIMEOUT_SECONDS,
+            ))
         except TimeoutError:
             return self.write_json(504, {"error": "upstream_timeout"})
+        except UpstreamStatusError as error:
+            if error.status == 504:
+                return self.write_json(504, {"error": "upstream_timeout"})
+            return self.write_json(502, {"error": "upstream_unavailable"})
         except UPSTREAM_ERRORS:
             return self.write_json(502, {"error": "upstream_unavailable"})
 

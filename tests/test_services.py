@@ -5,7 +5,7 @@ import sys
 import threading
 import unittest
 import uuid
-from http.client import HTTPConnection
+from http.client import HTTPConnection, RemoteDisconnected
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -103,6 +103,60 @@ class ServiceTests(unittest.TestCase):
         backend, _ = self.start_demo(model_url="http://127.0.0.1:0")
         self.assertEqual(request(backend, "/api/tickets", {"text": "泵有异响"}), (502, {"error": "upstream_unavailable"}))
 
+    def test_live_model_uses_thirty_second_timeout(self):
+        from model import live_prediction
+
+        reply = {"choices": [{"message": {"content": '{"device":"pump-8","category":"leak"}'}}]}
+        with patch("model.post_json", return_value=reply) as call:
+            live_prediction("Pump 8 is leaking", "http://fixture.invalid/chat/completions", "fixture", None)
+        self.assertEqual(call.call_args.kwargs["timeout"], 30)
+
+    def test_live_model_retries_transport_failure_with_remaining_timeout(self):
+        from model import live_prediction
+
+        reply = {"choices": [{"message": {"content": '{"device":"pump-8","category":"leak"}'}}]}
+        with patch("model.monotonic", side_effect=[100, 105]), patch(
+            "model.post_json", side_effect=[RemoteDisconnected("private diagnostic"), reply],
+        ) as call:
+            result = live_prediction("Pump 8 is leaking", "http://fixture.invalid/chat/completions", "fixture", None)
+        self.assertEqual(result, {"device": "pump-8", "category": "leak"})
+        self.assertEqual([entry.kwargs["timeout"] for entry in call.call_args_list], [30, 25])
+
+    def test_live_model_does_not_retry_an_exhausted_timeout(self):
+        from model import live_prediction
+
+        with patch("model.monotonic", side_effect=[100, 130]), patch(
+            "model.post_json", side_effect=TimeoutError,
+        ) as call:
+            with self.assertRaises(TimeoutError):
+                live_prediction("No details", "http://fixture.invalid/chat/completions", "fixture", None)
+        call.assert_called_once()
+
+    def test_live_model_can_retry_a_short_first_timeout_within_the_total_budget(self):
+        from model import live_prediction
+
+        reply = {"choices": [{"message": {"content": '{"device":null,"category":"unknown"}'}}]}
+        with patch("model.monotonic", side_effect=[100, 115]), patch(
+            "model.post_json", side_effect=[TimeoutError, reply],
+        ) as call:
+            result = live_prediction("No details", "http://fixture.invalid/chat/completions", "fixture", None,
+                                     attempt_timeout=15)
+        self.assertEqual(result, {"device": None, "category": "unknown"})
+        self.assertEqual([entry.kwargs["timeout"] for entry in call.call_args_list], [15, 15])
+
+    def test_live_mode_can_enable_nonthinking_json_output(self):
+        fixture = ThreadingHTTPServer(("127.0.0.1", 0), ChatCompletionsFixture)
+        fixture.status = 200
+        fixture.reply = '{"device":null,"category":"unknown"}'
+        upstream = self.start_server(fixture)
+        _, model = self.start_demo(
+            MODEL_MODE="live", LLM_BASE_URL=f"http://127.0.0.1:{upstream}/v1",
+            LLM_MODEL="fixture-model", LLM_ENABLE_THINKING="false", LLM_JSON_MODE="true",
+        )
+        self.assertEqual(request(model, "/predict", {"text": "No details"})[0], 200)
+        self.assertIs(fixture.received[1]["enable_thinking"], False)
+        self.assertEqual(fixture.received[1]["response_format"], {"type": "json_object"})
+
     def test_live_mode_uses_chat_completions_and_checks_response(self):
         fixture = ThreadingHTTPServer(("127.0.0.1", 0), ChatCompletionsFixture)
         fixture.status = 200
@@ -120,18 +174,43 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(path, "/v1/chat/completions")
         self.assertEqual(payload["model"], "fixture-model")
         self.assertEqual(payload["messages"][-1], {"role": "user", "content": text})
+        self.assertNotIn("enable_thinking", payload)
+        self.assertNotIn("response_format", payload)
         self.assertIsNone(auth)
 
-        for invalid_reply in [
-            "diagnostic from provider",
-            '{"device":"pump-8","category":"made-up"}',
-            '{"device":"notapump-8","category":"leak"}',
-            '{"device":8,"category":"leak"}',
-            '{"device":"pump-8","category":"leak","diagnostic":"unexpected"}',
-            "[" * 2000 + "]" * 2000,
+        for fenced_reply in [
+            '```json\n{"device":"pump-8","category":"leak"}\n```',
+            '  ```JSON\r\n{"device":"pump-8","category":"leak"}\r\n```  ',
+            '```\n{"device":"pump-8","category":"leak"}\n```',
+        ]:
+            with self.subTest(fenced_reply=fenced_reply):
+                fixture.reply = fenced_reply
+                status, ticket = request(backend, "/api/tickets", {"text": text})
+                self.assertEqual(status, 201)
+                self.assertEqual(ticket["result"], {"device": "pump-8", "category": "leak"})
+
+        for invalid_reply, reason in [
+            ("diagnostic from provider", "invalid_model_json"),
+            ("", "empty_model_content"),
+            ('{"device":"pump-8","category":"made-up"}', "invalid_category"),
+            ('{"device":"notapump-8","category":"leak"}', "invalid_device"),
+            ('{"device":8,"category":"leak"}', "invalid_device"),
+            ('{"device":"pump-8","category":"leak","diagnostic":"unexpected"}', "invalid_prediction_fields"),
+            ('```json\n{"device":"pump-8","category":"made-up"}\n```', "invalid_category"),
+            ('```json\n{"device":"pump-8","category":"leak","diagnostic":"unexpected"}\n```', "invalid_prediction_fields"),
+            ('Provider note\n```json\n{"device":"pump-8","category":"leak"}\n```', "invalid_model_json"),
+            ("[" * 2000 + "]" * 2000, "invalid_model_json"),
         ]:
             fixture.reply = invalid_reply
             with self.subTest(invalid_reply=invalid_reply[:100]):
-                self.assertEqual(request(model, "/predict", {"text": text}), (502, {"error": "upstream_unavailable"}))
+                self.assertEqual(request(model, "/predict", {"text": text}), (502, {"error": reason}))
+        fixture.status = 429
+        self.assertEqual(request(model, "/predict", {"text": text}),
+                         (502, {"error": "provider_http_error", "provider_status": 429}))
+        with patch("model.post_json", side_effect=TimeoutError("private diagnostic")):
+            self.assertEqual(request(model, "/predict", {"text": text}), (504, {"error": "provider_timeout"}))
+        with patch("model.post_json", side_effect=RemoteDisconnected("private diagnostic")):
+            self.assertEqual(request(model, "/predict", {"text": text}),
+                             (502, {"error": "provider_connection_closed"}))
         fixture.status = 504
         self.assertEqual(request(backend, "/api/tickets", {"text": text}), (504, {"error": "upstream_timeout"}))

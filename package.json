@@ -1,6 +1,6 @@
 {
   "name": "ai-app-regression",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Run one AI-powered work order across Web, API, Linux model service and Android.",
   "license": "MIT",

@@ -21,7 +21,7 @@ export async function checkWeb({ baseUrl, text, outputDir }) {
     await page.getByRole('textbox', { name: 'Issue description' }).fill(text);
 
     failure = 'The form did not create and look up the submitted ticket.';
-    const responseTimeout = { timeout: 15_000 };
+    const responseTimeout = { timeout: 40_000 };
     const [createdResponse, detailResponse] = await Promise.all([
       page.waitForResponse((response) => response.request().method() === 'POST' && response.url() === ticketsUrl, responseTimeout),
       page.waitForResponse((response) => response.request().method() === 'GET' && response.url().startsWith(`${ticketsUrl}/`), responseTimeout),

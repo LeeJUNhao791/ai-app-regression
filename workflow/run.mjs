@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { setTimeout as wait } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { checkAndroid } from './android.mjs';
-import { evaluate, labelsMatch } from './evaluate.mjs';
+import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
 import { renderReport, runStatus } from './report.mjs';
 import { checkWeb } from './web.mjs';
 
@@ -146,7 +146,10 @@ async function startModel() {
       }
       container = `ai-app-regression-${randomUUID().slice(0, 12)}`;
       const settings = ['MODEL_MODE', 'MOCK_FAULT', 'PYTHONUNBUFFERED'];
-      if (run.mode === 'live') settings.push('LLM_BASE_URL', 'LLM_MODEL', 'LLM_API_KEY');
+      if (run.mode === 'live') {
+        settings.push('LLM_BASE_URL', 'LLM_MODEL', 'LLM_API_KEY', 'LLM_ENABLE_THINKING', 'LLM_JSON_MODE');
+        settings.push('LLM_ATTEMPT_TIMEOUT_SECONDS');
+      }
       service = launch('docker', ['run', '--rm', '--name', container,
         '--mount', `type=bind,source=${join(root, 'services')},target=/app/services,readonly`,
         '-p', `127.0.0.1:${port}:8001`, ...settings.flatMap((key) => ['--env', key]),
@@ -202,16 +205,7 @@ async function runChecks() {
 
   if (modelUrl) {
     await stage('Model accuracy and robustness', async () => {
-      run.evaluation = await evaluate(cases, async (text) => {
-        const response = await fetch(`${modelUrl}/predict`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
-          signal: requestSignal(30000),
-        });
-        assert.equal(response.status, 200, 'Model prediction failed.');
-        return response.json();
-      });
+      run.evaluation = await evaluate(cases, (text) => requestPrediction(modelUrl, text, requestSignal(40_000)));
       const { accuracy, robustness } = run.evaluation;
       const caseSummary = `Accuracy ${accuracy.passed}/${accuracy.total}. Robustness ${robustness.passed}/${robustness.total}.`;
       const ticketCorrect = ticket && labelsMatch(ticket.result, first.expected);

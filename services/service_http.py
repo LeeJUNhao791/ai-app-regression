@@ -11,17 +11,29 @@ CATEGORIES = ("noise", "leak", "overheat", "unknown")
 DEVICE_ID = re.compile(r"pump-[1-9][0-9]*")
 MAX_BODY_BYTES = 16 * 1024
 MAX_TEXT_LENGTH = 4000
+PROVIDER_TIMEOUT_SECONDS = 30
+MODEL_SERVICE_TIMEOUT_SECONDS = PROVIDER_TIMEOUT_SECONDS + 5
 UPSTREAM_ERRORS = (HTTPException, OSError, ValueError, RecursionError)
+
+
+class UpstreamStatusError(ValueError):
+    def __init__(self, status):
+        super().__init__("Upstream returned an error status")
+        self.status = status
+
+
+class PredictionSchemaError(ValueError):
+    pass
 
 
 def checked_result(value):
     if not isinstance(value, dict) or set(value) != {"device", "category"}:
-        raise ValueError("Invalid prediction fields")
+        raise PredictionSchemaError("invalid_prediction_fields")
     device = value["device"]
     if device is not None and (not isinstance(device, str) or not DEVICE_ID.fullmatch(device)):
-        raise ValueError("Invalid device")
+        raise PredictionSchemaError("invalid_device")
     if value["category"] not in CATEGORIES:
-        raise ValueError("Invalid category")
+        raise PredictionSchemaError("invalid_category")
     return value
 
 
@@ -35,10 +47,8 @@ def post_json(url, payload, timeout, headers=None):
     with closing(connection(endpoint.hostname, endpoint.port, timeout=timeout)) as client:
         client.request("POST", endpoint.path, body, {"Content-Type": "application/json", **(headers or {})})
         response = client.getresponse()
-        if response.status == 504:
-            raise TimeoutError
         if response.status != 200:
-            raise ValueError("Upstream returned an error status")
+            raise UpstreamStatusError(response.status)
         body = response.read(64 * 1024 + 1)
     if len(body) > 64 * 1024:
         raise ValueError("Upstream response too large")

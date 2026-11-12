@@ -21,8 +21,10 @@ export function renderReport(run) {
 
   const rows = (run.evaluation?.rows ?? []).map((row) => `
     <tr><td><code>${escape(row.id)}</code><small>${escape(row.kind)}</small></td>
-    <td>${escape(row.text)}</td><td>${label(row.expected)}</td><td>${row.actual ? label(row.actual) : 'Prediction unavailable or invalid'}</td>
-    <td><span class="badge ${row.passed ? 'passed' : 'failed'}">${row.passed ? 'passed' : 'failed'}</span></td></tr>`).join('');
+    <td>${escape(row.text)}</td><td>${label(row.expected)}</td><td>${label(row.actual)}</td>
+    <td>${Number.isFinite(row.durationMs) ? `${escape(row.durationMs)} ms` : '—'}</td>
+    <td><span class="badge ${row.passed ? 'passed' : 'failed'}">${row.passed ? 'passed' : 'failed'}</span>
+    ${row.failureReason ? `<small>${escape(row.failureReason)}</small>` : ''}</td></tr>`).join('');
 
   return `<!doctype html>
 <html lang="en">
@@ -44,7 +46,7 @@ export function renderReport(run) {
   li p{color:var(--muted);overflow-wrap:anywhere}li a{display:inline-block;margin:3px 8px 0 0;color:#0a526d;overflow-wrap:anywhere}
   .badge{display:inline-block;align-self:start;justify-self:start;border:1px solid currentColor;padding:1px 7px;font-size:11px;font-weight:750;text-transform:uppercase;white-space:nowrap}
   .passed{color:#0a5943;background:#e2f6eb}.failed{color:#9d2331;background:#fff0ee}.partial,.skipped{color:#734207;background:#fff3d8}
-  .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:670px;background:#fff}
+  .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:760px;background:#fff}
   th,td{border:1px solid var(--line);text-align:left;vertical-align:top;padding:8px 10px}th{background:#dce9e6}
   small{display:block;color:var(--muted)}code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:.9em}
   @media(max-width:560px){main{padding:16px}dl{grid-template-columns:1fr}dl div+div{border-left:0;border-top:1px solid var(--line)}}
@@ -60,7 +62,7 @@ export function renderReport(run) {
   <section><h2>Checks</h2><ul>${steps}</ul></section>
   <section><h2>Labelled examples</h2>
   <p>${run.mode === 'mock' ? 'Fixed responses exercise the workflow.' : 'Scores describe this labelled sample.'} Robustness requires the original and the changed input to match the label.</p>
-  ${rows ? `<div class="scroll"><table><thead><tr><th>Case</th><th>Input</th><th>Expected</th><th>Observed</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No example results were recorded.</p>'}
+  ${rows ? `<div class="scroll"><table><thead><tr><th>Case</th><th>Input</th><th>Expected</th><th>Observed</th><th>Duration</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No example results were recorded.</p>'}
   </section>
 </main>
 </html>`;

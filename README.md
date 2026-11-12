@@ -51,8 +51,18 @@ run. A failed required check returns a nonzero exit code.
 Set `LLM_BASE_URL` to an OpenAI-compatible API base ending in `/v1`, set
 `LLM_MODEL`, and set `LLM_API_KEY` if the provider requires it. The provider's
 Chat Completions endpoint must return a JSON object with `device` and
-`category` in its message content. When using a model provider on the host
-from Docker Desktop, use `host.docker.internal` in the provider URL.
+`category` in its message content. The object can be wrapped in a single
+Markdown code block. Provider requests share a 30-second timeout budget. A
+transport failure can be retried once within the remaining timeout. Set
+`LLM_ATTEMPT_TIMEOUT_SECONDS` to a smaller first-attempt limit to leave time for
+a retry after a timeout. When using a
+model provider on the host from Docker Desktop, use `host.docker.internal` in
+the provider URL.
+
+For providers that support `enable_thinking`, such as Alibaba Cloud Model
+Studio with `qwen3.6-flash`, set `LLM_ENABLE_THINKING=false` to use non-thinking
+mode. Set `LLM_JSON_MODE=true` if the provider supports Chat Completions JSON
+mode for the selected model. Field validation applies to the returned JSON.
 
 ```sh
 node workflow/run.mjs --live --android required
@@ -71,8 +81,10 @@ pass `--model-url URL` and select the matching mock or live mode.
 - **Model.** Four original cases check exact field accuracy. Twelve variants
   exercise paraphrases, field order, missing information, and a deliberate
   typo. A robustness case passes when the original and variant both match
-  the label. Mock scores exercise the test harness. Live scores apply to this
-  small labelled sample.
+  the label. Each row records elapsed milliseconds and, on failure, a
+  reason such as a provider timeout, invalid JSON, or a label mismatch.
+  Mock scores exercise the test harness. Live scores apply to this small
+  labelled sample.
 
 To see a failure report, inject a wrong device ID:
 
