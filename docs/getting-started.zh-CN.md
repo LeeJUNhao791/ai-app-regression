@@ -20,6 +20,22 @@ Linux 上请将浏览器安装步骤替换为 `npx playwright install chromium -
 
 终端和输出路径中的 `report.html` 顶部应显示 **Basic demo passed. Android skipped by request (--android off).**，即基础演示通过、Android 按选项跳过。Web 前端、后端 API 和 Linux 模型服务应通过检查，准确性为 **4/4**，鲁棒性为 **12/12**。**partial** 表示本次运行未包含 Android。这一步无需 API Key。
 
+## 使用自己的样例
+
+先运行[可编辑的模板](../fixtures/custom-tickets.example.json)。它包含两条原始样例和一条鲁棒性变体。
+
+```sh
+node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android off
+```
+
+复制模板为自己的 UTF-8 JSON 文件，把 `--fixtures` 指向该文件。相对路径以当前目录为准。下文三种跑法都可以加这个参数。默认文件为 `fixtures/tickets.json`。
+
+- 文件顶层使用非空对象数组。每条样例填写唯一且非空的 `id`，以及非空的工单 `text`。
+- `expected.device` 填 `pump-1` 这样的泵编号或 `null`。`expected.category` 填 `noise`、`leak`、`overheat` 或 `unknown`。
+- `variants` 可以省略，也可以填非空文本组成的数组。变体沿用原始样例的预期结果。
+
+第一条原始样例用于端到端工单验收，模型评测会跑完所有原始样例和变体。固定响应模式由内置规则给出预测。报告会逐条对比预期值和实测值，并记录耗时和判定。文件校验失败时，终端会指出文件，字段错误还会标出样例和字段。脚本会在启动服务前退出。
+
 ## 选择跑法
 
 | 跑法 | 验证内容 |

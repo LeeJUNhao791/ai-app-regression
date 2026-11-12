@@ -38,6 +38,18 @@ to add an Android phone, a real model, or both.
 
 ![Fixed-response HTML report showing the basic demo passed, Android skipped by request, 4/4 accuracy cases, and 12/12 robustness variants.](docs/assets/basic-demo-report.png)
 
+## Use your own samples
+
+Try the editable [JSON template](fixtures/custom-tickets.example.json).
+
+```sh
+node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android off
+```
+
+Copy the template and edit the inputs and expected results. The report shows
+the expected and observed labels, duration, and verdict for each row.
+See [sample format and validation](docs/getting-started.md#use-your-own-samples).
+
 ## What the report verifies
 
 - **Web and API.** Playwright submits the form in Chromium. The runner

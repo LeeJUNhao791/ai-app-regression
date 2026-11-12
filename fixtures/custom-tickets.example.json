@@ -1,0 +1,13 @@
+[
+  {
+    "id": "pump-1-outlet-leak",
+    "text": "Pump 1 is leaking at the outlet.\r\nThe leak started during the morning shift.",
+    "expected": { "device": "pump-1", "category": "leak" },
+    "variants": ["Leak at the outlet of pump 1"]
+  },
+  {
+    "id": "pump-5-noise",
+    "text": "Pump 5 is noisy after startup",
+    "expected": { "device": "pump-5", "category": "noise" }
+  }
+]

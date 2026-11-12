@@ -39,6 +39,17 @@ jobs:
             echo 'Expected the wrong-device fixture to fail.'
             exit 1
           fi
+          node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android off --output artifacts/custom
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const cases = JSON.parse(readFileSync('fixtures/custom-tickets.example.json', 'utf8'));
+          cases[0].expected.category = 'noise';
+          writeFileSync('artifacts/wrong-expected.json', JSON.stringify(cases));
+          NODE
+          if node workflow/run.mjs --fixtures artifacts/wrong-expected.json --android off --output artifacts/wrong-expected; then
+            echo 'Expected the wrong label in the custom fixture to fail.'
+            exit 1
+          fi
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
@@ -60,6 +71,16 @@ jobs:
           assert.deepEqual(good.evaluation.robustness, { passed: 12, total: 12 });
           assert.deepEqual(bad.evaluation.accuracy, { passed: 3, total: 4 });
           assert.deepEqual(bad.evaluation.robustness, { passed: 9, total: 12 });
+          const custom = read('custom');
+          assert.equal(custom.status, 'partial');
+          assert.deepEqual(custom.evaluation.accuracy, { passed: 2, total: 2 });
+          assert.deepEqual(custom.evaluation.robustness, { passed: 1, total: 1 });
+          const wrongExpected = read('wrong-expected');
+          assert.equal(wrongExpected.status, 'failed');
+          const [mismatch] = wrongExpected.evaluation.rows;
+          assert.equal(mismatch.expected.category, 'noise');
+          assert.equal(mismatch.actual.category, 'leak');
+          assert.equal(mismatch.passed, false);
           NODE
       - uses: actions/upload-artifact@v7
         if: always()

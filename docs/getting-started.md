@@ -29,6 +29,33 @@ backend API, and Linux model service pass, with **4/4** accuracy cases and
 **12/12** robustness variants. The **partial** badge indicates that Android was
 excluded from this run. This run requires no API key.
 
+## Use your own samples
+
+Run the [editable template](../fixtures/custom-tickets.example.json). It includes
+two original cases and one robustness variant.
+
+```sh
+node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android off
+```
+
+Copy it to your own UTF-8 JSON file and point `--fixtures` to that file. Relative
+paths start from your current directory. The flag works with any run mode
+below. The default file is `fixtures/tickets.json`.
+
+- Use a non-empty array of objects. Give each sample a unique, non-empty `id`
+  and non-empty `text`.
+- Set `expected.device` to a pump ID such as `pump-1` or to `null`. Set
+  `expected.category` to `noise`, `leak`, `overheat`, or `unknown`.
+- Omit `variants` or provide an array of non-empty text strings. Each variant
+  uses the original sample's expected result.
+
+The first original sample becomes the work order used by the end-to-end
+checks. The model evaluation runs every original and variant. In mock mode,
+the built-in rules produce the predictions. The report compares those
+predictions with your expected results and shows a duration and verdict per row.
+If validation fails, the terminal names the file and, for a field error, the
+sample and field. The runner exits before starting services.
+
 ## Choose a run mode
 
 | Mode | Use it to check |

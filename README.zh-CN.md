@@ -28,6 +28,16 @@ Linux 上请将浏览器安装步骤替换为 `npx playwright install chromium -
 
 ![固定响应的 HTML 报告。基础演示通过，Android 按选项跳过，准确性 4/4、鲁棒性 12/12。](docs/assets/basic-demo-report.png)
 
+## 使用自己的样例
+
+先运行这份[可编辑的 JSON 模板](fixtures/custom-tickets.example.json)。
+
+```sh
+node workflow/run.mjs --fixtures fixtures/custom-tickets.example.json --android off
+```
+
+复制模板，修改工单文本和预期结果。报告逐条显示预期值、实测值、耗时和判定。详见[样例格式与校验](docs/getting-started.zh-CN.md#使用自己的样例)。
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。

@@ -43,6 +43,12 @@ export function labelsMatch(actual, expected) {
   return actual?.device === expected.device && actual.category === expected.category;
 }
 
+export const issueCategories = ['noise', 'leak', 'overheat', 'unknown'];
+
+export function validDevice(value) {
+  return value === null || (typeof value === 'string' && /^pump-[1-9][0-9]*$/.test(value));
+}
+
 async function checkCase(predict, text, expected, originalPassed = true) {
   const started = performance.now();
   let actual = null;
@@ -50,9 +56,7 @@ async function checkCase(predict, text, expected, originalPassed = true) {
   try {
     const result = await predict(text);
     const { device, category } = result ?? {};
-    if (result && Object.keys(result).length === 2 &&
-        (device === null || (typeof device === 'string' && /^pump-[1-9][0-9]*$/.test(device))) &&
-        ['noise', 'leak', 'overheat', 'unknown'].includes(category)) {
+    if (result && Object.keys(result).length === 2 && validDevice(device) && issueCategories.includes(category)) {
       actual = { device, category };
     } else {
       failureReason = 'Prediction fields failed validation.';

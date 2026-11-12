@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +8,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { checkAndroid, findAndroidDevice } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
+import { loadFixtures } from './fixtures.mjs';
 import { androidOffSummary, basicDemoSummary, renderReport, runStatus } from './report.mjs';
 import { checkWeb } from './web.mjs';
 
@@ -16,12 +17,13 @@ const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 
 const providerKey = process.env.LLM_API_KEY;
 delete process.env.LLM_API_KEY;
 const usage = 'npm run check -- [--live] [--model-url URL] [--android auto|required|off] ' +
-  '[--serial SERIAL] [--output DIR] [--fault wrong-device]';
+  '[--serial SERIAL] [--fixtures FILE] [--output DIR] [--fault wrong-device]';
 const { values: options } = parseArgs({ options: {
   live: { type: 'boolean' },
   'model-url': { type: 'string' },
   android: { type: 'string', default: 'auto' },
   serial: { type: 'string' },
+  fixtures: { type: 'string' },
   output: { type: 'string' },
   fault: { type: 'string' },
   help: { type: 'boolean' },
@@ -175,6 +177,7 @@ async function startBackend(modelUrl) {
 }
 
 async function runChecks() {
+  const cases = loadFixtures(resolve(options.fixtures ?? join(root, 'fixtures', 'tickets.json')));
   if (options.live && !options['model-url']) {
     const configured = await stage('Live model configuration', () => {
       const missing = ['LLM_BASE_URL', 'LLM_MODEL'].filter((name) => !process.env[name]?.trim());
@@ -194,7 +197,6 @@ async function runChecks() {
     if (!serial) return;
   }
 
-  const cases = JSON.parse(readFileSync(join(root, 'fixtures', 'tickets.json'), 'utf8'));
   const first = cases[0];
   const modelUrl = await stage('Linux model service', startModel, ['model.log']);
   const backend = modelUrl
