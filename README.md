@@ -110,6 +110,16 @@ The v0.1 device run passed on a Pixel 4 XL with Android 11 (API 30), using
 Chromium, the Python backend, and the mock model service in a Linux container.
 All 4 original cases and 12 robustness variants passed in mock mode.
 
+The v0.1.1 live run used `qwen3.6-flash` in a Linux container and a Pixel 4 XL
+running Android 11 (API 30, `arm64-v8a`). Chromium created work order
+`e96fb437-30da-430f-a239-deb49891ddb6`. The independent API lookup and Android
+instrumentation matched the same ID and fields (`pump-3`, `noise`, `completed`).
+
+The live suite passed 4/4 original cases and 11/12 robustness variants.
+`pump-noise.2` timed out after 30.03 seconds during the full run. An isolated
+retest with the same model configuration returned the expected `pump-3 / noise`
+in 2.88 seconds.
+
 ## License
 
 [MIT](LICENSE)
