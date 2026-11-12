@@ -12,11 +12,13 @@
 git clone https://github.com/LeeJUNhao791/ai-app-regression.git
 cd ai-app-regression
 npm ci
-npx playwright install chromium
+npx playwright install chromium --only-shell
 node workflow/run.mjs --android off
 ```
 
-打开终端输出路径中的 `report.html`。Web 前端、后端 API 和 Linux 模型服务应通过检查，报告应显示准确性 **4/4**、鲁棒性 **12/12**。**Android device** 标记为 **skipped**（跳过），整次运行标记为 **partial**（部分完成）。这一步无需 API Key。
+Linux 上请将浏览器安装步骤替换为 `npx playwright install chromium --only-shell --with-deps`，同时安装系统依赖。
+
+终端和输出路径中的 `report.html` 顶部应显示 **Basic demo passed. Android skipped by request (--android off).**，即基础演示通过、Android 按选项跳过。Web 前端、后端 API 和 Linux 模型服务应通过检查，准确性为 **4/4**，鲁棒性为 **12/12**。**partial** 表示本次运行未包含 Android。这一步无需 API Key。
 
 ## 2. 接入 Android 真机
 
@@ -67,7 +69,7 @@ node workflow/run.mjs --live --android required
 | 现象 | 检查方法 |
 | --- | --- |
 | Linux 模型服务未启动 | 查看 `model.log`。在 Windows 或 macOS 上，确认 Docker 正在运行 Linux 容器。 |
-| Chromium 未启动 | 在项目根目录运行 `npx playwright install chromium`。 |
+| Chromium 未启动 | 在项目根目录运行 `npx playwright install chromium --only-shell`。Linux 上加 `--with-deps` 安装系统依赖。 |
 | ADB 显示手机为 `unauthorized` | 解锁手机并接受 USB 调试授权，再运行 `adb devices`。 |
 | Android 构建或安装失败 | 打开 `android-build.log` 或 `android-adb.log`。检查 JDK 17、SDK Platform 35，以及手机上是否有安装确认提示。 |
 | 模型服务商拒绝请求 | 核对 API 基础地址、模型 ID、API Key 和可选模型配置。 |
@@ -75,5 +77,11 @@ node workflow/run.mjs --live --android required
 | JSON 无效或字段与标注不符 | 对照预期字段、实际字段和失败原因，确认所选模型可以返回要求的 JSON 字段。 |
 
 每次运行会保存 `report.html`、`report.json` 及可用的截图和日志。可用 `--output path/to/new-directory` 指定新的输出目录。检查失败时，命令会以非零状态退出，同时写出报告。
+
+### 模型超时示例
+
+这次 v0.1.1 真实模型验收中，Chromium、API 和 Pixel 4 XL 核对了同一张已完成的工单。由于 `qwen3.6-flash` 在 `pump-noise.2` 样例上超时，工作流标记为 **failed**。失败行显示了耗时和失败原因。
+
+![真实模型报告显示准确性 4/4、鲁棒性 11/12，Android 检查通过，pump-noise.2 超时。](assets/live-report.png)
 
 [返回中文 README](../README.zh-CN.md)

@@ -16,17 +16,17 @@
 
 ```sh
 npm ci
-npx playwright install chromium
+npx playwright install chromium --only-shell
 node workflow/run.mjs --android off
 ```
 
-打开终端输出的 `artifacts/run-…/report.html`。Web、API 和 Linux 模型相关检查应通过。Android 标记为 **skipped**（跳过），整次运行标记为 **partial**（部分完成）。要接入真机或真实模型，请查看[上手教程](docs/getting-started.zh-CN.md)。
+Linux 上请将浏览器安装步骤替换为 `npx playwright install chromium --only-shell --with-deps`，同时安装系统依赖。
+
+终端和 `artifacts/run-…/report.html` 都会显示 **Basic demo passed. Android skipped by request (--android off).**，即基础演示通过、Android 按选项跳过。由于本次未包含 Android，工作流标记为 **partial**。要接入真机或真实模型，请查看[上手教程](docs/getting-started.zh-CN.md)。
 
 ## 报告示例
 
-![v0.1.1 真实模型运行报告截图。Web、后端 API 和 Android 真机核对了同一张已完成的工单。模型准确性为 4/4，鲁棒性为 11/12。](docs/assets/live-report.png)
-
-这次运行中，Chromium、API 和 Pixel 4 XL 查到相同的工单 ID，结果均为 `pump-3 / noise / completed`。由于 `qwen3.6-flash` 有一条鲁棒性样例超时，整次运行标记为 **failed**（失败）。
+![固定响应的 HTML 报告。基础演示通过，Android 按选项跳过，准确性 4/4、鲁棒性 12/12。](docs/assets/basic-demo-report.png)
 
 ## 报告验证了什么
 
@@ -40,7 +40,7 @@ node workflow/run.mjs --android off
 node workflow/run.mjs --fault wrong-device --android off
 ```
 
-Web 和 API 可能返回相同的错误结果。模型检查会标记失败，并展示预期值和实际值。
+Web 和 API 可能返回相同的错误结果。模型检查会标记失败，并展示预期值和实际值。也可以查看教程里的[模型超时示例](docs/getting-started.zh-CN.md#模型超时示例)。
 
 ## 开发验证
 

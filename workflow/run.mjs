@@ -8,7 +8,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { checkAndroid } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
-import { renderReport, runStatus } from './report.mjs';
+import { androidOffSummary, basicDemoSummary, renderReport, runStatus } from './report.mjs';
 import { checkWeb } from './web.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -216,7 +216,7 @@ async function runChecks() {
   } else skipped('Model accuracy and robustness', 'Linux model service was unavailable.');
 
   if (!ticket || options.android === 'off') {
-    skipped('Android device', options.android === 'off' ? 'Disabled for this run.' : 'There was no verified work order.');
+    skipped('Android device', options.android === 'off' ? androidOffSummary : 'There was no verified work order.');
   } else {
     await stage('Android device', () => checkAndroid({
       backendPort: backend.port, ticket, serial: options.serial ?? process.env.ADB_SERIAL,
@@ -236,6 +236,8 @@ try {
   writeFileSync(join(outputDir, 'report.html'), renderReport(run));
   writeFileSync(join(outputDir, 'report.json'), `${JSON.stringify({ ...run, status }, null, 2)}\n`);
   for (const step of run.steps) console.log(`${step.status.toUpperCase()}  ${step.name} — ${step.summary}`);
+  const summary = basicDemoSummary(run);
+  if (summary) console.log(summary);
   console.log(`Report: ${join(outputDir, 'report.html')}`);
   process.exitCode = interruptCode ?? (status === 'failed' ? 1 : 0);
 }

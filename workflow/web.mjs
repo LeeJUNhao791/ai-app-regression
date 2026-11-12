@@ -11,7 +11,8 @@ export async function checkWeb({ baseUrl, text, outputDir }) {
 
   try {
     const ticketsUrl = new URL('/api/tickets', baseUrl).href;
-    failure = 'Chromium could not start. Run npm exec -- playwright install chromium.';
+    failure = 'Chromium could not start. Run npx playwright install chromium --only-shell. ' +
+      'On Linux, add --with-deps to install system dependencies.';
     browser = await chromium.launch();
     failure = 'The work order form could not load.';
     page = await browser.newPage({ viewport: { width: 1280, height: 800 } });

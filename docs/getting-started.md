@@ -15,14 +15,19 @@ Desktop in Linux container mode. `docker info --format '{{.OSType}}'` should pri
 git clone https://github.com/LeeJUNhao791/ai-app-regression.git
 cd ai-app-regression
 npm ci
-npx playwright install chromium
+npx playwright install chromium --only-shell
 node workflow/run.mjs --android off
 ```
 
-Open the `report.html` path printed in the terminal. Expect the Web frontend,
-Backend API, and Linux model service to pass. The report should show **4/4**
-accuracy cases and **12/12** robustness variants. **Android device** is
-**skipped**, so the overall result is **partial**. This run requires no API key.
+On Linux, replace the browser installation step with
+`npx playwright install chromium --only-shell --with-deps` to install system
+dependencies too.
+
+Expect **Basic demo passed. Android skipped by request (--android off).** in
+the terminal and at the top of the printed `report.html`. The Web frontend,
+backend API, and Linux model service pass, with **4/4** accuracy cases and
+**12/12** robustness variants. The **partial** badge indicates that Android was
+excluded from this run. This run requires no API key.
 
 ## 2. Add a physical Android phone
 
@@ -99,7 +104,7 @@ work-order check can appear alongside a failed model evaluation.
 | What you see | What to check |
 | --- | --- |
 | Linux model service did not start | Check `model.log`. On Windows or macOS, verify Docker is running Linux containers. |
-| Chromium could not start | Run `npx playwright install chromium` from the repository root. |
+| Chromium could not start | Run `npx playwright install chromium --only-shell` from the repository root. On Linux, add `--with-deps` to install system dependencies. |
 | ADB lists the phone as `unauthorized` | Unlock the phone and accept the USB debugging prompt, then run `adb devices` again. |
 | Android build or install failed | Open `android-build.log` or `android-adb.log`. Check JDK 17, SDK Platform 35, and any installation prompt on the phone. |
 | Provider rejected the request | Check the API base, model ID, key, and any optional model settings. |
@@ -109,5 +114,13 @@ work-order check can appear alongside a failed model evaluation.
 Each run saves `report.html`, `report.json`, and available screenshots and logs.
 Use `--output path/to/new-directory` to choose a fresh destination. A failed
 check produces a nonzero exit code and still writes the report.
+
+### Model timeout example
+
+This live v0.1.1 run matched the same completed work order in Chromium, the API,
+and a Pixel 4 XL. The workflow shows **failed** because `pump-noise.2` timed out
+against `qwen3.6-flash`. The failed row shows the duration and failure reason.
+
+![Live model report with 4/4 accuracy, 11/12 robustness, a passing Android check, and a timeout recorded for pump-noise.2.](assets/live-report.png)
 
 [Back to the project README](../README.md)

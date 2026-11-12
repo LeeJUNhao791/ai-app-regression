@@ -70,3 +70,21 @@ test('report escapes model data and keeps skipped checks visible', () => {
   assert.match(html, /Provider timed out/);
   assert.equal(runStatus([...run.steps, { status: 'failed' }]), 'failed');
 });
+
+test('report confirms the basic demo only when its checks pass and Android was explicitly skipped', () => {
+  const passed = { name: 'Web frontend', status: 'passed', summary: 'Work order created.' };
+  const android = { name: 'Android device', status: 'skipped', summary: 'Android skipped by request (--android off).' };
+  const run = { mode: 'mock', steps: [passed, android] };
+
+  assert.match(renderReport(run), /Basic demo passed\. Android skipped by request \(--android off\)\./);
+  assert.doesNotMatch(renderReport({ ...run, mode: 'live' }), /Basic demo passed/);
+  assert.doesNotMatch(renderReport({
+    ...run, steps: [{ ...passed, status: 'failed' }, android],
+  }), /Basic demo passed/);
+  assert.doesNotMatch(renderReport({
+    ...run, steps: [{ ...passed, status: 'skipped' }, android],
+  }), /Basic demo passed/);
+  assert.doesNotMatch(renderReport({
+    ...run, steps: [passed, { ...android, summary: 'No authorized Android device.' }],
+  }), /Basic demo passed/);
+});

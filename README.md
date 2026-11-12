@@ -22,21 +22,21 @@ directly. From the repository root, run the demo with fixed model responses.
 
 ```sh
 npm ci
-npx playwright install chromium
+npx playwright install chromium --only-shell
 node workflow/run.mjs --android off
 ```
 
-Open the printed `artifacts/run-…/report.html`. Expect the Web, API, and Linux
-model checks to pass, with Android marked **skipped** and the workflow marked
-**partial**. To add a phone or a real model, follow the [step-by-step guide](docs/getting-started.md).
+On Linux, use `npx playwright install chromium --only-shell --with-deps` for
+the browser installation step to install system dependencies too.
+
+The terminal and `artifacts/run-…/report.html` show **Basic demo passed. Android
+skipped by request (--android off).** The workflow badge shows **partial**
+because Android was excluded. To add a phone or a real model, follow the
+[step-by-step guide](docs/getting-started.md).
 
 ## Example report
 
-![Screenshot of a live v0.1.1 HTML report. Web, the backend API, and the physical Android device verified the same completed work order. Model accuracy was 4/4 and robustness was 11/12.](docs/assets/live-report.png)
-
-In this run, Chromium, the API, and a Pixel 4 XL matched the ticket ID and
-`pump-3 / noise / completed`. The overall report shows **failed** because one
-robustness sample timed out against `qwen3.6-flash`.
+![Fixed-response HTML report showing the basic demo passed, Android skipped by request, 4/4 accuracy cases, and 12/12 robustness variants.](docs/assets/basic-demo-report.png)
 
 ## What the report verifies
 
@@ -59,7 +59,8 @@ node workflow/run.mjs --fault wrong-device --android off
 ```
 
 The Web and API steps can agree on the wrong label. The model check still fails
-and shows the expected and observed values.
+and shows the expected and observed values. The guide also includes a
+[real model timeout example](docs/getting-started.md#model-timeout-example).
 
 ## Development checks
 

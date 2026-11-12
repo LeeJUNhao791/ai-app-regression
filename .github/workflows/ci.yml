@@ -28,11 +28,14 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: python -B -m unittest discover -s tests -p 'test_*.py' -v
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium --only-shell --with-deps
       - name: Run the workflow and verify the failure example
+        shell: bash
         run: |
-          npm run check -- --android off --output artifacts/smoke
-          if npm run check -- --android off --fault wrong-device --output artifacts/wrong-device; then
+          mkdir -p artifacts
+          node workflow/run.mjs --android off --output artifacts/smoke | tee artifacts/smoke-console.log
+          grep -Fx 'Basic demo passed. Android skipped by request (--android off).' artifacts/smoke-console.log
+          if node workflow/run.mjs --android off --fault wrong-device --output artifacts/wrong-device; then
             echo 'Expected the wrong-device fixture to fail.'
             exit 1
           fi
@@ -44,6 +47,9 @@ jobs:
           const bad = read('wrong-device');
           assert.equal(good.status, 'partial');
           assert.equal(bad.status, 'failed');
+          const demoSummary = 'Basic demo passed. Android skipped by request (--android off).';
+          assert.ok(readFileSync('artifacts/smoke/report.html', 'utf8').includes(demoSummary));
+          assert.ok(!readFileSync('artifacts/wrong-device/report.html', 'utf8').includes(demoSummary));
           for (const report of [good, bad]) {
             const status = name => report.steps.find(step => step.name === name)?.status;
             assert.ok(report.ticketId);

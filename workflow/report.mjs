@@ -8,11 +8,23 @@ export function runStatus(steps) {
   return 'passed';
 }
 
+export const androidOffSummary = 'Android skipped by request (--android off).';
+
+export function basicDemoSummary({ mode, steps }) {
+  const android = steps.find(({ name }) => name === 'Android device');
+  if (mode === 'mock' && android?.status === 'skipped' && android.summary === androidOffSummary &&
+      steps.every((step) => step === android || step.status === 'passed')) {
+    return `Basic demo passed. ${androidOffSummary}`;
+  }
+  return '';
+}
+
 const score = (metric) => metric ? `${metric.passed}/${metric.total}` : 'Not run';
 const label = (result) => escape(result ? `${result.device ?? '—'} / ${result.category}` : '—');
 
 export function renderReport(run) {
   const status = runStatus(run.steps);
+  const summary = basicDemoSummary(run);
   const steps = run.steps.map(({ name, status, summary, evidence }) => `
     <li><span class="badge ${escape(status)}">${escape(status)}</span><div>
       <strong>${escape(name)}</strong><p>${escape(summary)}</p>
@@ -37,6 +49,7 @@ export function renderReport(run) {
   header{background:var(--navy);color:#f4faf9;border-bottom:5px solid #54c4b0;padding:36px max(24px,calc((100% - 1040px)/2))}
   h1,h2,p{margin:0}h1{font-size:clamp(28px,5vw,45px);letter-spacing:-.035em;line-height:1.08}
   header p{margin-top:12px;color:#c4ddd9;overflow-wrap:anywhere}main{max-width:1088px;margin:0 auto;padding:24px}
+  .demo-summary{margin:0 0 16px;padding:10px 14px;border-left:4px solid #0a5943;background:#e2f6eb;color:#0a5943;font-weight:700}
   dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 26px;border:1px solid var(--line);background:#fff}
   dl div{padding:14px 18px}dl div+div{border-left:1px solid var(--line)}
   dt{color:var(--muted);font-size:13px}dd{margin:4px 0 0;font-size:20px;font-weight:700}
@@ -54,6 +67,7 @@ export function renderReport(run) {
 <header><h1>AI App Regression</h1>
 <p>${escape(run.startedAt)} · Model mode <strong>${escape(run.mode)}</strong> · Ticket <code>${escape(run.ticketId ?? 'Not created')}</code></p></header>
 <main>
+  ${summary ? `<p class="demo-summary">${escape(summary)}</p>` : ''}
   <dl aria-label="Results">
     <div><dt>Workflow</dt><dd><span class="badge ${status}">${status}</span></dd></div>
     <div><dt>Accuracy cases</dt><dd>${score(run.evaluation?.accuracy)}</dd></div>
