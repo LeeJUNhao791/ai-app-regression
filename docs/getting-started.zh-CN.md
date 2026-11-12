@@ -62,6 +62,8 @@ node workflow/run.mjs --model-only --live --profile fixtures/fan.profile.json --
 
 ## 选择跑法
 
+要测试自己的工单接口，请看[外部后端](#外部后端)。
+
 | 跑法 | 验证内容 |
 | --- | --- |
 | [只接 Android 真机](#只接-android-真机) | 用固定模型响应，在手机上核对同一张工单。 |
@@ -125,6 +127,28 @@ node workflow/run.mjs --live --android required
 ```
 
 脚本会在启动模型服务或发送模型请求前检查 ADB 授权。若授权失败，解锁手机并接受 USB 调试授权后再运行。打开报告，核对 Web、后端 API 和 Android 的工单 ID 和字段，再查看模型评测分数。
+
+## 外部后端
+
+使用 Node.js 22+。先在一个终端启动替代示例后端。
+
+```sh
+node examples/alternate-backend.mjs
+```
+
+在另一个终端进入仓库根目录，运行 API 验收。
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures/alternate-backend.map.json --fixtures fixtures/custom-tickets.example.json
+```
+
+接入自己的测试 API 时，复制[字段映射模板](../fixtures/alternate-backend.map.json)并修改。每次运行会用第一条原始样例创建一张工单。
+
+- `create_path` 是 POST 路径，`request_text_field` 是请求 JSON 顶层存放工单文本的字段。示例使用 `/v2/orders` 和 `description`。
+- `lookup_path` 是包含一个 `{id}` 占位符的 GET 路径。脚本会用创建接口返回的 ID 做 URL 编码后查询。两个路径都拼接到基础地址后面。
+- `response` 将 `id`、`text`、`status`、`device` 和 `category` 映射到 JSON 字段路径，例如 `order.reference`。创建和查询接口使用同一种响应结构。ID 可用非空字符串或安全整数，`completed_status` 填两个接口都会返回的完成状态，例如 `resolved`。
+
+本模式验收同步 JSON 接口。POST 接受 HTTP 200 或 201，GET 要求 HTTP 200。报告会显示工单 ID，并核对创建和查询映射出的 ID、文本、状态和分类一致，分类还须符合样例预期。若 API 使用自定义设备 ID 或类别，可加 `--profile`。提示词和模型由外部 API 自己管理。本模式只运行外部 API 检查。
 
 ## 根据报告排障
 

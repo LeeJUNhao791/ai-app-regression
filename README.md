@@ -62,6 +62,10 @@ For another domain, pass `--profile` with your system prompt, device ID
 pattern, and allowed categories. The [fan example](docs/getting-started.md#domain-profile)
 uses `fan-1 / vibration`.
 
+To verify your own work-order API, use `--backend-url` with `--backend-map`.
+The [external backend example](docs/getting-started.md#external-backend) shows how
+to map different routes and fields and verify the same ticket after creation.
+
 ## What the report verifies
 
 - **Web and API.** Playwright submits the form in Chromium. The runner

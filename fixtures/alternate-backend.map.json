@@ -1,0 +1,13 @@
+{
+  "create_path": "/v2/orders",
+  "lookup_path": "/v2/orders/{id}",
+  "request_text_field": "description",
+  "completed_status": "resolved",
+  "response": {
+    "id": "order.reference",
+    "text": "order.description",
+    "status": "order.state",
+    "device": "classification.asset",
+    "category": "classification.issue"
+  }
+}

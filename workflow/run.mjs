@@ -8,6 +8,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { checkAndroid, findAndroidDevice } from './android.mjs';
 import { evaluate, labelsMatch, requestPrediction } from './evaluate.mjs';
+import { externalBackend } from './external-backend.mjs';
 import { loadFixtures } from './fixtures.mjs';
 import { loadProfile } from './profile.mjs';
 import { androidOffSummary, basicDemoSummary, renderReport, runStatus } from './report.mjs';
@@ -17,11 +18,14 @@ const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 
 const providerKey = process.env.LLM_API_KEY;
 delete process.env.LLM_API_KEY;
 const usage = 'npm run check -- [--model-only] [--live] [--model-url URL] [--android auto|required|off] ' +
-  '[--serial SERIAL] [--profile FILE] [--fixtures FILE] [--output DIR] [--fault wrong-device]';
+  '[--serial SERIAL] [--profile FILE] [--fixtures FILE] [--output DIR] [--fault wrong-device] ' +
+  '[--backend-url URL --backend-map FILE]';
 const { values: options } = parseArgs({ options: {
   live: { type: 'boolean' },
   'model-only': { type: 'boolean' },
   'model-url': { type: 'string' },
+  'backend-url': { type: 'string' },
+  'backend-map': { type: 'string' },
   android: { type: 'string', default: 'auto' },
   serial: { type: 'string' },
   fixtures: { type: 'string' },
@@ -39,13 +43,22 @@ if (!['auto', 'required', 'off'].includes(options.android) ||
   throw new Error(usage);
 }
 const modelOnly = options['model-only'];
+const backendOnly = options['backend-url'] !== undefined;
+if (backendOnly !== (options['backend-map'] !== undefined)) {
+  throw new Error('--backend-url and --backend-map must be used together.');
+}
+if (backendOnly && (modelOnly || options.live || options['model-url'] !== undefined ||
+    options.fault !== undefined || options.android === 'required' || options.serial !== undefined)) {
+  throw new Error('External backend mode cannot be combined with model-service, fault-injection, or Android device options.');
+}
 if (modelOnly && (options.android === 'required' || options.serial !== undefined)) {
   throw new Error('--model-only cannot be combined with --android required or --serial.');
 }
 
-const run = { startedAt: new Date().toISOString(), mode: options.live ? 'live' : 'mock',
+const run = { startedAt: new Date().toISOString(), mode: backendOnly ? 'external' : options.live ? 'live' : 'mock',
   ticketId: null, steps: [], evaluation: null };
 if (modelOnly) run.scope = 'model-only';
+if (backendOnly) run.scope = 'external-backend';
 const outputDir = resolve(options.output ?? join(root, 'artifacts', `run-${randomUUID().slice(0, 8)}`));
 mkdirSync(dirname(outputDir), { recursive: true });
 mkdirSync(outputDir);
@@ -199,10 +212,33 @@ async function checkModel(cases, modelUrl, profile, ticket) {
   });
 }
 
+async function checkExternalBackend(sample, profile) {
+  const client = externalBackend(options['backend-url'], resolve(options['backend-map']), profile);
+  const created = await stage('External backend create', async () => {
+    const ticket = await client.create(sample.text, requestSignal(40_000));
+    run.ticketId = ticket.id;
+    assert.equal(ticket.text, sample.text, 'Created work order did not preserve the submitted text.');
+    return { value: ticket, summary: `Created work order ${ticket.id}.` };
+  });
+  if (!created) return;
+  await stage('External backend lookup', async () => {
+    const ticket = await client.lookup(created.id, requestSignal(5000));
+    assert.equal(ticket.id, created.id, 'Lookup returned a different work-order ID.');
+    assert.deepEqual(ticket, created, 'Lookup returned different mapped values for the created work order.');
+    assert.equal(ticket.status, client.completedStatus, 'Mapped work-order status did not match completed_status.');
+    assert.ok(labelsMatch(ticket.result, sample.expected), 'Mapped work-order labels differed from the expected labels.');
+    return { summary: `Lookup returned the same work order ${ticket.id} with status ${ticket.status} and expected labels ${ticket.result.device ?? 'null'} / ${ticket.result.category}.` };
+  });
+}
+
 async function runChecks() {
   const profile = options.profile === undefined ? undefined : loadProfile(resolve(options.profile));
-  if (profile && !options.live) throw new Error('--profile requires --live. The fixed-response demo uses pump rules.');
+  if (profile && !options.live && !backendOnly) throw new Error('--profile requires --live. The fixed-response demo uses pump rules.');
   const cases = loadFixtures(resolve(options.fixtures ?? join(root, 'fixtures', 'tickets.json')), profile);
+  if (backendOnly) {
+    await checkExternalBackend(cases[0], profile);
+    return;
+  }
   if (options.live && !options['model-url']) {
     const configured = await stage('Live model configuration', () => {
       const missing = ['LLM_BASE_URL', 'LLM_MODEL'].filter((name) => !process.env[name]?.trim());
@@ -276,6 +312,7 @@ try {
   writeFileSync(join(outputDir, 'report.html'), renderReport(run));
   writeFileSync(join(outputDir, 'report.json'), `${JSON.stringify({ ...run, status }, null, 2)}\n`);
   if (modelOnly) console.log('Scope: Model only.');
+  if (backendOnly) console.log('Scope: External backend.');
   for (const step of run.steps) console.log(`${step.status.toUpperCase()}  ${step.name} — ${step.summary}`);
   const summary = basicDemoSummary(run);
   if (summary) console.log(summary);

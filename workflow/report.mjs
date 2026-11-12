@@ -25,8 +25,10 @@ const label = (result) => escape(result ? `${result.device ?? '—'} / ${result.
 export function renderReport(run) {
   const status = runStatus(run.steps);
   const summary = basicDemoSummary(run);
-  const scope = run.scope === 'model-only' ? 'Scope <strong>Model only</strong>'
-    : `Ticket <code>${escape(run.ticketId ?? 'Not created')}</code>`;
+  const external = run.scope === 'external-backend';
+  const ticket = `Ticket <code>${escape(run.ticketId ?? 'Not created')}</code>`;
+  const scope = external ? `Scope <strong>External backend</strong> · ${ticket}`
+    : `Model mode <strong>${escape(run.mode)}</strong> · ${run.scope === 'model-only' ? 'Scope <strong>Model only</strong>' : ticket}`;
   const steps = run.steps.map(({ name, status, summary, evidence }) => `
     <li><span class="badge ${escape(status)}">${escape(status)}</span><div>
       <strong>${escape(name)}</strong><p>${escape(summary)}</p>
@@ -67,19 +69,19 @@ export function renderReport(run) {
   @media(max-width:560px){main{padding:16px}dl{grid-template-columns:1fr}dl div+div{border-left:0;border-top:1px solid var(--line)}}
 </style>
 <header><h1>AI App Regression</h1>
-<p>${escape(run.startedAt)} · Model mode <strong>${escape(run.mode)}</strong> · ${scope}</p></header>
+<p>${escape(run.startedAt)} · ${scope}</p></header>
 <main>
   ${summary ? `<p class="demo-summary">${escape(summary)}</p>` : ''}
   <dl aria-label="Results">
     <div><dt>Workflow</dt><dd><span class="badge ${status}">${status}</span></dd></div>
-    <div><dt>Accuracy cases</dt><dd>${score(run.evaluation?.accuracy)}</dd></div>
-    <div><dt>Robustness variants</dt><dd>${score(run.evaluation?.robustness)}</dd></div>
+    ${external ? '' : `<div><dt>Accuracy cases</dt><dd>${score(run.evaluation?.accuracy)}</dd></div>
+    <div><dt>Robustness variants</dt><dd>${score(run.evaluation?.robustness)}</dd></div>`}
   </dl>
   <section><h2>Checks</h2><ul>${steps}</ul></section>
-  <section><h2>Labelled examples</h2>
+  ${external ? '' : `<section><h2>Labelled examples</h2>
   <p>${run.mode === 'mock' ? 'Fixed responses exercise the workflow.' : 'Scores describe this labelled sample.'} Robustness requires the original and the changed input to match the label.</p>
   ${rows ? `<div class="scroll"><table><thead><tr><th>Case</th><th>Input</th><th>Expected</th><th>Observed</th><th>Duration</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No example results were recorded.</p>'}
-  </section>
+  </section>`}
 </main>
 </html>`;
 }

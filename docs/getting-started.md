@@ -98,6 +98,8 @@ profile.
 
 ## Choose a run mode
 
+To test a separate work-order API, follow [External backend](#external-backend).
+
 | Mode | Use it to check |
 | --- | --- |
 | [Android only](#android-only) | Verify the same work order on a physical phone with fixed model responses. |
@@ -194,6 +196,40 @@ The runner checks ADB authorization before it starts the model service or sends
 any model requests. If authorization fails, unlock the phone, accept the USB
 debugging prompt, and rerun the command. In the report, compare the work-order
 ID and fields across Web, Backend API, and Android, then review the model scores.
+
+## External backend
+
+Use Node.js 22+. Start the alternate example API in one terminal.
+
+```sh
+node examples/alternate-backend.mjs
+```
+
+Run the API check in another terminal from the repository root.
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures/alternate-backend.map.json --fixtures fixtures/custom-tickets.example.json
+```
+
+Copy the [mapping template](../fixtures/alternate-backend.map.json) for your
+test API. Each run creates one work order from the first original fixture.
+
+- `create_path` is the POST path. `request_text_field` is the top-level JSON
+  key for the submitted work-order text. The example uses `/v2/orders` and
+  `description`.
+- `lookup_path` is the GET path with one `{id}` placeholder. The runner uses
+  the URL-encoded ID returned by creation. Both paths are appended to the base URL.
+- `response` maps `id`, `text`, `status`, `device`, and `category` to JSON field
+  paths such as `order.reference`. Use the same response shape for both routes.
+  IDs can be non-empty strings or safe integers. Set `completed_status` to
+  the status returned by both routes, such as `resolved`.
+
+The check expects synchronous JSON responses. POST accepts HTTP 200 or 201,
+and GET expects HTTP 200. The report shows the ticket ID and checks that both
+responses map to the same ID, text, state, and classification. The labels must
+match the fixture. Use `--profile` if the API uses another device or category
+scheme. The external API controls its own prompt and model. This run executes
+only the external API checks.
 
 ## Troubleshoot from the report
 

@@ -48,6 +48,8 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 用 `--profile` 可自定义系统提示词、设备 ID 格式和允许的类别。[风机示例](docs/getting-started.zh-CN.md#领域配置)演示了 `fan-1 / vibration`。
 
+用 `--backend-url` 和 `--backend-map` 可验收自己的工单 API。[外部后端示例](docs/getting-started.zh-CN.md#外部后端)演示如何映射不同的接口和字段，并在创建后按 ID 查询同一张工单。
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。
