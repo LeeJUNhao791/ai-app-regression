@@ -1,5 +1,7 @@
 # Getting started
 
+[简体中文](getting-started.zh-CN.md)
+
 Run the maintenance work-order demo with fixed model responses, add a physical
 Android phone, then repeat the same checks with a live model.
 

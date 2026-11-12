@@ -1,5 +1,7 @@
 # AI App Regression
 
+[简体中文](README.zh-CN.md)
+
 Run one maintenance ticket through a real browser, a backend API, a Linux model
 service, and an Android phone. One command produces an HTML report with the
 ticket ID, labelled examples, and evidence from each check.
