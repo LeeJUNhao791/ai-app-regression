@@ -199,11 +199,16 @@ class ServiceTests(unittest.TestCase):
             ('```json\n{"device":"pump-8","category":"made-up"}\n```', "invalid_category"),
             ('```json\n{"device":"pump-8","category":"leak","diagnostic":"unexpected"}\n```', "invalid_prediction_fields"),
             ('Provider note\n```json\n{"device":"pump-8","category":"leak"}\n```', "invalid_model_json"),
-            ("[" * 2000 + "]" * 2000, "invalid_model_json"),
+            ("[]", "invalid_prediction_fields"),
         ]:
             fixture.reply = invalid_reply
             with self.subTest(invalid_reply=invalid_reply[:100]):
                 self.assertEqual(request(model, "/predict", {"text": text}), (502, {"error": reason}))
+        # Python versions differ in how deeply nested JSON is decoded.
+        fixture.reply = "[" * 2000 + "]" * 2000
+        status, result = request(model, "/predict", {"text": text})
+        self.assertEqual(status, 502)
+        self.assertIn(result["error"], ("invalid_model_json", "invalid_prediction_fields"))
         fixture.status = 429
         self.assertEqual(request(model, "/predict", {"text": text}),
                          (502, {"error": "provider_http_error", "provider_status": 429}))
