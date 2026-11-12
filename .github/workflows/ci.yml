@@ -1,0 +1,82 @@
+name: AI App Regression CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workflow:
+    name: Browser, API and Linux model
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: npm test
+      - run: python -B -m unittest discover -s tests -p 'test_*.py' -v
+      - run: npx playwright install --with-deps chromium
+      - name: Run the workflow and verify the failure example
+        run: |
+          npm run check -- --android off --output artifacts/smoke
+          if npm run check -- --android off --fault wrong-device --output artifacts/wrong-device; then
+            echo 'Expected the wrong-device fixture to fail.'
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const read = name => JSON.parse(readFileSync(`artifacts/${name}/report.json`, 'utf8'));
+          const good = read('smoke');
+          const bad = read('wrong-device');
+          assert.equal(good.status, 'partial');
+          assert.equal(bad.status, 'failed');
+          for (const report of [good, bad]) {
+            const status = name => report.steps.find(step => step.name === name)?.status;
+            assert.ok(report.ticketId);
+            for (const name of ['Linux model service', 'Web frontend', 'Backend API']) assert.equal(status(name), 'passed');
+            assert.equal(status('Android device'), 'skipped');
+          }
+          assert.deepEqual(good.evaluation.accuracy, { passed: 4, total: 4 });
+          assert.deepEqual(good.evaluation.robustness, { passed: 12, total: 12 });
+          assert.deepEqual(bad.evaluation.accuracy, { passed: 3, total: 4 });
+          assert.deepEqual(bad.evaluation.robustness, { passed: 9, total: 12 });
+          NODE
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: workflow-reports
+          path: artifacts/
+          if-no-files-found: ignore
+
+  android:
+    name: Compile Android demo and test APKs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Install Android build tools
+        run: '"${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"'
+      - name: Assemble debug and instrumentation APKs
+        working-directory: android
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest

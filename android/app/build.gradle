@@ -1,0 +1,17 @@
+plugins {
+    id 'com.android.application' version '8.13.1'
+}
+
+android {
+    namespace 'io.github.leejunhao791.aiappregression'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.leejunhao791.aiappregression'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+        testInstrumentationRunner 'io.github.leejunhao791.aiappregression.TicketInstrumentation'
+    }
+}

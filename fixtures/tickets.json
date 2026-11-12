@@ -1,0 +1,26 @@
+[
+  {
+    "id": "pump-noise",
+    "text": "三号泵启动后异响",
+    "expected": { "device": "pump-3", "category": "noise" },
+    "variants": ["异响：3号泵", "Pump 3 makes abnormal noise", "三号泵启动后出现异想"]
+  },
+  {
+    "id": "pump-leak",
+    "text": "2号泵出口漏水",
+    "expected": { "device": "pump-2", "category": "leak" },
+    "variants": ["发现漏水：二号泵出口", "Pump 2 is leaking at the outlet", "2号泵出口有渗漏"]
+  },
+  {
+    "id": "pump-overheat",
+    "text": "Pump 4 is overheating",
+    "expected": { "device": "pump-4", "category": "overheat" },
+    "variants": ["4号泵温度过高", "过热报警（四号泵）", "Pump #4 has high temperature"]
+  },
+  {
+    "id": "insufficient-info",
+    "text": "暂无更多信息",
+    "expected": { "device": null, "category": "unknown" },
+    "variants": ["现场情况待确认", "只有这条记录", "More information is needed"]
+  }
+]

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AI Ticket Regression</string>
+    <string name="ticket_heading">Ticket details</string>
+    <string name="ticket_hint">Ticket ID</string>
+    <string name="load_ticket">Load ticket</string>
+    <string name="ticket_id">Ticket ID: %1$s</string>
+    <string name="ticket_status">Status: %1$s</string>
+    <string name="ticket_device">Device: %1$s</string>
+    <string name="ticket_category">Category: %1$s</string>
+    <string name="empty_value">—</string>
+    <string name="no_device">None</string>
+    <string name="loading">Loading…</string>
+    <string name="load_error">Error loading ticket (%1$s)</string>
+    <string name="enter_ticket_id">Enter a ticket ID</string>
+</resources>
