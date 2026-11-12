@@ -1,0 +1,5 @@
+{
+  "input_selector": "#maintenance-note",
+  "submit_selector": "#send-request",
+  "ticket_id_selector": "#request-reference"
+}

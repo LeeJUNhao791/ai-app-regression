@@ -54,16 +54,7 @@ export function externalBackend(url, mapPath, profile = defaultProfile) {
   }
   const baseUrl = base.origin + base.pathname.replace(/\/+$/, '');
   const map = loadMapping(mapPath);
-  async function request(path, signal, body) {
-    const method = body === undefined ? 'GET' : 'POST';
-    const response = await fetch(baseUrl + path, {
-      method, signal, redirect: 'error',
-      ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
-    });
-    if (response.status !== 200 && !(method === 'POST' && response.status === 201)) {
-      throw new Error(`External backend ${method} returned HTTP ${response.status}.`);
-    }
-    const data = await response.json();
+  function decodeTicket(data) {
     const fields = Object.fromEntries(responseFields.map((name) => [name, fieldAt(data, map.response[name])]));
     if ((!nonEmpty(fields.id) && !Number.isSafeInteger(fields.id)) || fields.id === '.' || fields.id === '..') {
       throw new Error('Mapped work-order ID must be a non-empty string or safe integer and usable in the lookup path.');
@@ -77,9 +68,24 @@ export function externalBackend(url, mapPath, profile = defaultProfile) {
     return { id: String(fields.id), text: fields.text, status: fields.status,
       result: { device: fields.device, category: fields.category } };
   }
+  const createUrl = new URL(baseUrl + map.create_path).href;
+  async function request(url, signal, body) {
+    const method = body === undefined ? 'GET' : 'POST';
+    const response = await fetch(url, {
+      method, signal, redirect: 'error',
+      ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+    });
+    if (response.status !== 200 && !(method === 'POST' && response.status === 201)) {
+      throw new Error(`External backend ${method} returned HTTP ${response.status}.`);
+    }
+    return decodeTicket(await response.json());
+  }
   return {
-    create: (text, signal) => request(map.create_path, signal, { [map.request_text_field]: text }),
-    lookup: (id, signal) => request(map.lookup_path.replace('{id}', encodeURIComponent(id)), signal),
+    createUrl,
+    requestTextField: map.request_text_field,
+    decodeTicket,
+    create: (text, signal) => request(createUrl, signal, { [map.request_text_field]: text }),
+    lookup: (id, signal) => request(baseUrl + map.lookup_path.replace('{id}', encodeURIComponent(id)), signal),
     completedStatus: map.completed_status,
   };
 }

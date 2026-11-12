@@ -50,6 +50,8 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 用 `--backend-url` 和 `--backend-map` 可验收自己的工单 API。[外部后端示例](docs/getting-started.zh-CN.md#外部后端)演示如何映射不同的接口和字段，并在创建后按 ID 查询同一张工单。
 
+再加 `--web-url` 和 `--web-map`，即可由浏览器提交自己的表单，再通过 API 核对页面显示的工单。[外部 Web 示例](docs/getting-started.zh-CN.md#外部-web)
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。

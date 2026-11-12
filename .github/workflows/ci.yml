@@ -31,6 +31,8 @@ jobs:
       - name: Run model-only evaluation before installing Chromium
         run: node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.json --output artifacts/model-only
       - run: npx playwright install chromium --only-shell --with-deps
+      - name: Verify the external Web form and API lookup
+        run: node --test tests/external-web.mjs
       - name: Run the workflow and verify the failure example
         shell: bash
         run: |

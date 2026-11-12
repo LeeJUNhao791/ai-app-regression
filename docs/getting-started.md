@@ -231,6 +231,28 @@ match the fixture. Use `--profile` if the API uses another device or category
 scheme. The external API controls its own prompt and model. This run executes
 only the external API checks.
 
+## External Web
+
+Install the browser using the commands in [the basic demo](#1-run-with-fixed-model-responses),
+then start the [alternate backend](#external-backend). Its form is served at
+`/service-desk`.
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures/alternate-backend.map.json --web-url http://127.0.0.1:8090/service-desk --web-map fixtures/alternate-web.map.json --fixtures fixtures/custom-tickets.example.json
+```
+
+Copy the [Web map](../fixtures/alternate-web.map.json). Set the CSS selectors
+`input_selector`, `submit_selector`, and `ticket_id_selector` to the work-order
+input, submit control, and element that displays the ID. The ID element should
+contain the ID as its visible text. If the page and API use different origins,
+the API must permit the page's browser request.
+
+The browser submits the fixture text as JSON through the form's own POST. The
+runner checks the request against the mapped create endpoint and text field,
+then matches the displayed ID to the mapped response. It uses that ID for the
+independent API lookup and checks the mapped fields and expected classification.
+The report includes the work-order ID and a Web screenshot.
+
 ## Troubleshoot from the report
 
 | What you see | What to check |

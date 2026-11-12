@@ -1,15 +1,21 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export function createAlternateBackend() {
   const orders = new Map();
+  const page = readFileSync(new URL('./alternate-web.html', import.meta.url));
   return createServer(async (request, response) => {
     const reply = (status, data) => {
       response.writeHead(status, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify(data));
     };
+    if (request.method === 'GET' && request.url === '/service-desk') {
+      response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return response.end(page);
+    }
     if (request.method === 'POST' && request.url === '/v2/orders') {
       const chunks = [];
       let bytes = 0;

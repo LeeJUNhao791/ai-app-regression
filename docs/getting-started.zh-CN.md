@@ -150,6 +150,18 @@ node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures
 
 本模式验收同步 JSON 接口。POST 接受 HTTP 200 或 201，GET 要求 HTTP 200。报告会显示工单 ID，并核对创建和查询映射出的 ID、文本、状态和分类一致，分类还须符合样例预期。若 API 使用自定义设备 ID 或类别，可加 `--profile`。提示词和模型由外部 API 自己管理。本模式只运行外部 API 检查。
 
+## 外部 Web
+
+按[基础演示](#1-用固定模型响应运行)安装浏览器，再启动[替代示例后端](#外部后端)。示例表单位于 `/service-desk`。
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures/alternate-backend.map.json --web-url http://127.0.0.1:8090/service-desk --web-map fixtures/alternate-web.map.json --fixtures fixtures/custom-tickets.example.json
+```
+
+复制 [Web 定位器模板](../fixtures/alternate-web.map.json)。`input_selector`、`submit_selector` 和 `ticket_id_selector` 分别是工单输入框、提交控件和工单 ID 元素的 CSS 选择器。ID 元素的可见文本应是工单 ID。页面和 API 使用不同源时，API 需要允许该页面发起浏览器请求。
+
+浏览器通过表单自身的 POST 提交 JSON。脚本核对请求是否发往映射的创建接口、是否在映射的字段中携带样例文本，再比较页面显示的 ID 和创建响应中的 ID。随后用同一 ID 独立查询 API，核对映射字段及样例预期分类。报告附工单 ID 和 Web 截图。
+
 ## 根据报告排障
 
 | 现象 | 检查方法 |

@@ -19,13 +19,15 @@ const providerKey = process.env.LLM_API_KEY;
 delete process.env.LLM_API_KEY;
 const usage = 'npm run check -- [--model-only] [--live] [--model-url URL] [--android auto|required|off] ' +
   '[--serial SERIAL] [--profile FILE] [--fixtures FILE] [--output DIR] [--fault wrong-device] ' +
-  '[--backend-url URL --backend-map FILE]';
+  '[--backend-url URL --backend-map FILE [--web-url URL --web-map FILE]]';
 const { values: options } = parseArgs({ options: {
   live: { type: 'boolean' },
   'model-only': { type: 'boolean' },
   'model-url': { type: 'string' },
   'backend-url': { type: 'string' },
   'backend-map': { type: 'string' },
+  'web-url': { type: 'string' },
+  'web-map': { type: 'string' },
   android: { type: 'string', default: 'auto' },
   serial: { type: 'string' },
   fixtures: { type: 'string' },
@@ -44,6 +46,10 @@ if (!['auto', 'required', 'off'].includes(options.android) ||
 }
 const modelOnly = options['model-only'];
 const backendOnly = options['backend-url'] !== undefined;
+const externalWeb = options['web-url'] !== undefined;
+if (externalWeb !== (options['web-map'] !== undefined) || (externalWeb && !backendOnly)) {
+  throw new Error('--web-url and --web-map must be used together with --backend-url and --backend-map.');
+}
 if (backendOnly !== (options['backend-map'] !== undefined)) {
   throw new Error('--backend-url and --backend-map must be used together.');
 }
@@ -58,7 +64,7 @@ if (modelOnly && (options.android === 'required' || options.serial !== undefined
 const run = { startedAt: new Date().toISOString(), mode: backendOnly ? 'external' : options.live ? 'live' : 'mock',
   ticketId: null, steps: [], evaluation: null };
 if (modelOnly) run.scope = 'model-only';
-if (backendOnly) run.scope = 'external-backend';
+if (backendOnly) run.scope = externalWeb ? 'external-web' : 'external-backend';
 const outputDir = resolve(options.output ?? join(root, 'artifacts', `run-${randomUUID().slice(0, 8)}`));
 mkdirSync(dirname(outputDir), { recursive: true });
 mkdirSync(outputDir);
@@ -214,11 +220,21 @@ async function checkModel(cases, modelUrl, profile, ticket) {
 
 async function checkExternalBackend(sample, profile) {
   const client = externalBackend(options['backend-url'], resolve(options['backend-map']), profile);
-  const created = await stage('External backend create', async () => {
-    const ticket = await client.create(sample.text, requestSignal(40_000));
+  const created = await stage(externalWeb ? 'External Web create' : 'External backend create', async () => {
+    let ticket;
+    let evidence;
+    if (externalWeb) {
+      const { checkExternalWeb } = await import('./web.mjs');
+      ({ ticket, evidence } = await checkExternalWeb({
+        pageUrl: options['web-url'], mapPath: resolve(options['web-map']), client, text: sample.text, outputDir,
+      }));
+    } else {
+      ticket = await client.create(sample.text, requestSignal(40_000));
+    }
     run.ticketId = ticket.id;
     assert.equal(ticket.text, sample.text, 'Created work order did not preserve the submitted text.');
-    return { value: ticket, summary: `Created work order ${ticket.id}.` };
+    return { value: ticket, evidence,
+      summary: externalWeb ? `Web created and displayed work order ${ticket.id}.` : `Created work order ${ticket.id}.` };
   });
   if (!created) return;
   await stage('External backend lookup', async () => {
@@ -312,7 +328,7 @@ try {
   writeFileSync(join(outputDir, 'report.html'), renderReport(run));
   writeFileSync(join(outputDir, 'report.json'), `${JSON.stringify({ ...run, status }, null, 2)}\n`);
   if (modelOnly) console.log('Scope: Model only.');
-  if (backendOnly) console.log('Scope: External backend.');
+  if (backendOnly) console.log(externalWeb ? 'Scope: External Web and API.' : 'Scope: External backend.');
   for (const step of run.steps) console.log(`${step.status.toUpperCase()}  ${step.name} — ${step.summary}`);
   const summary = basicDemoSummary(run);
   if (summary) console.log(summary);

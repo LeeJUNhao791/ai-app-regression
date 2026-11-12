@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maintenance request</title>
+<style>
+  body { max-width: 42rem; margin: 3rem auto; padding: 0 1rem; font: 1rem system-ui, sans-serif; }
+  label, textarea, button { display: block; margin-bottom: 1rem; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; }
+</style>
+<h1>Maintenance request</h1>
+<form id="maintenance-request">
+  <label for="maintenance-note">What needs maintenance?</label>
+  <textarea id="maintenance-note" rows="5" required></textarea>
+  <button id="send-request" type="submit">Send request</button>
+</form>
+<p role="status">Reference <output id="request-reference"></output></p>
+<script>
+  const form = document.querySelector('#maintenance-request');
+  const note = document.querySelector('#maintenance-note');
+  const reference = document.querySelector('#request-reference');
+  const submit = document.querySelector('#send-request');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    reference.textContent = '';
+    try {
+      const response = await fetch('/v2/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: note.value }),
+      });
+      if (!response.ok) throw new Error('Request failed');
+      const result = await response.json();
+      reference.textContent = result.order.reference;
+    } catch {
+      reference.textContent = 'Could not create request';
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
+</html>
