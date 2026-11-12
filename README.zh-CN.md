@@ -4,7 +4,7 @@
 
 用同一张维修工单验证真实浏览器、后端 API、Linux 模型服务和 Android 真机。一条命令生成 HTML 报告，记录工单 ID、标注样例和各项检查的证据。
 
-[快速开始](#快速开始) · [上手教程](docs/getting-started.zh-CN.md)
+[打开四端示例报告](https://leejunhao791.github.io/ai-app-regression/) · [快速开始](#快速开始) · [上手教程](docs/getting-started.zh-CN.md)
 
 ![四端工单流程。Chromium 通过后端 API 提交和查询工单，后端调用 Linux 模型服务，Android 按 ID 查询同一张工单。](docs/assets/work-order-flow.svg)
 

@@ -1,0 +1,8 @@
+INSTRUMENTATION_RESULT: stream=
+Ticket UI assertions passed
+Ticket ID: a0dd5a27-7aa9-44b4-857e-4d0b2dd4f47b
+Status: completed
+Device: pump-3
+Category: noise
+
+INSTRUMENTATION_CODE: -1

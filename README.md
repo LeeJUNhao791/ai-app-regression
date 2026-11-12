@@ -6,7 +6,7 @@ Run one maintenance ticket through a real browser, a backend API, a Linux model
 service, and an Android phone. One command produces an HTML report with the
 ticket ID, labelled examples, and evidence from each check.
 
-[Quick start](#quick-start) · [Step-by-step guide](docs/getting-started.md)
+[Open the four-layer example report](https://leejunhao791.github.io/ai-app-regression/) · [Quick start](#quick-start) · [Step-by-step guide](docs/getting-started.md)
 
 ![Four-layer work-order flow. Chromium submits and looks up the work order through the backend API, which calls the Linux model service. Android looks up the same work order by ID.](docs/assets/work-order-flow.svg)
 

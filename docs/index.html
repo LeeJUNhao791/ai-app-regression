@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI App Regression | Four-layer example report</title>
+<style>
+  :root{color-scheme:light;--ink:#17232f;--muted:#4f5f68;--line:#cbd7d6;--paper:#eef3f1;--navy:#142b3b}
+  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 "Instrument Sans",system-ui,sans-serif}
+  header{background:var(--navy);color:#f4faf9;border-bottom:5px solid #54c4b0;padding:36px max(24px,calc((100% - 1040px)/2))}
+  h1,h2,p{margin:0}h1{font-size:clamp(28px,5vw,45px);letter-spacing:-.035em;line-height:1.08}
+  header p{margin-top:12px;color:#c4ddd9;overflow-wrap:anywhere}main{max-width:1088px;margin:0 auto;padding:24px}
+  .demo-summary{margin:0 0 16px;padding:10px 14px;border-left:4px solid #0a5943;background:#e2f6eb;color:#0a5943;font-weight:700}
+  dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 26px;border:1px solid var(--line);background:#fff}
+  dl div{padding:14px 18px}dl div+div{border-left:1px solid var(--line)}
+  dt{color:var(--muted);font-size:13px}dd{margin:4px 0 0;font-size:20px;font-weight:700}
+  h2{font-size:20px;margin-bottom:8px}section{margin-bottom:25px}section>p{margin-bottom:10px;color:var(--muted)}
+  ul{list-style:none;padding:0;margin:0;border:1px solid var(--line);background:#fff}
+  li{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:12px 14px}li+li{border-top:1px solid var(--line)}
+  li p{color:var(--muted);overflow-wrap:anywhere}li a{display:inline-block;margin:3px 8px 0 0;color:#0a526d;overflow-wrap:anywhere}
+  .badge{display:inline-block;align-self:start;justify-self:start;border:1px solid currentColor;padding:1px 7px;font-size:11px;font-weight:750;text-transform:uppercase;white-space:nowrap}
+  .passed{color:#0a5943;background:#e2f6eb}.failed{color:#9d2331;background:#fff0ee}.partial,.skipped{color:#734207;background:#fff3d8}
+  .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:760px;background:#fff}
+  th,td{border:1px solid var(--line);text-align:left;vertical-align:top;padding:8px 10px}th{background:#dce9e6}
+  small{display:block;color:var(--muted)}code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:.9em}
+  @media(max-width:560px){main{padding:16px}dl{grid-template-columns:1fr}dl div+div{border-left:0;border-top:1px solid var(--line)}}
+</style>
+<header><h1>AI App Regression</h1>
+<p>2026-11-12T09:00:39.511Z · Model mode <strong>live</strong> · Ticket <code>a0dd5a27-7aa9-44b4-857e-4d0b2dd4f47b</code></p><p>Recorded live run with qwen3.6-flash and a Pixel 4 XL (Android 11, API 30).</p></header>
+<main>
+
+  <dl aria-label="Results">
+    <div><dt>Workflow</dt><dd><span class="badge passed">passed</span></dd></div>
+    <div><dt>Accuracy cases</dt><dd>4/4</dd></div>
+    <div><dt>Robustness variants</dt><dd>12/12</dd></div>
+  </dl>
+  <section><h2>Checks</h2><ul>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Live model configuration</strong><p>LLM_BASE_URL and LLM_MODEL are set.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Android authorization</strong><p>ADB found an authorized physical Android device.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Linux model service</strong><p>Linux service responded in live mode.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Backend startup</strong><p>Work-order API is ready.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Web frontend</strong><p>Chromium submitted the work order and displayed the API result.</p>
+      <a href="assets/example-work-order.png">Web work-order screenshot</a>
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Backend API</strong><p>The API returned the same completed work order and result.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Model accuracy and robustness</strong><p>Accuracy 4/4. Robustness 12/12. Work-order labels match.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>Android device</strong><p>The physical Android device displayed the ticket ID, completed status, device, and category.</p>
+      <a href="assets/example-android-instrumentation.txt">Android test results</a>
+    </div></li></ul></section>
+  <section><h2>Labelled examples</h2>
+  <p>Scores describe this labelled sample. Robustness requires the original and the changed input to match the label.</p>
+  <div class="scroll"><table><thead><tr><th>Case</th><th>Input</th><th>Expected</th><th>Observed</th><th>Duration</th><th>Result</th></tr></thead><tbody>
+    <tr><td><code>pump-noise</code><small>Accuracy</small></td>
+    <td>三号泵启动后异响</td><td>pump-3 / noise</td><td>pump-3 / noise</td>
+    <td>3063 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-noise.1</code><small>Robustness</small></td>
+    <td>异响：3号泵</td><td>pump-3 / noise</td><td>pump-3 / noise</td>
+    <td>3990 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-noise.2</code><small>Robustness</small></td>
+    <td>Pump 3 makes abnormal noise</td><td>pump-3 / noise</td><td>pump-3 / noise</td>
+    <td>3789 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-noise.3</code><small>Robustness</small></td>
+    <td>三号泵启动后出现异想</td><td>pump-3 / noise</td><td>pump-3 / noise</td>
+    <td>3292 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-leak</code><small>Accuracy</small></td>
+    <td>2号泵出口漏水</td><td>pump-2 / leak</td><td>pump-2 / leak</td>
+    <td>10838 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-leak.1</code><small>Robustness</small></td>
+    <td>发现漏水：二号泵出口</td><td>pump-2 / leak</td><td>pump-2 / leak</td>
+    <td>3292 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-leak.2</code><small>Robustness</small></td>
+    <td>Pump 2 is leaking at the outlet</td><td>pump-2 / leak</td><td>pump-2 / leak</td>
+    <td>4149 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-leak.3</code><small>Robustness</small></td>
+    <td>2号泵出口有渗漏</td><td>pump-2 / leak</td><td>pump-2 / leak</td>
+    <td>31174 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-overheat</code><small>Accuracy</small></td>
+    <td>Pump 4 is overheating</td><td>pump-4 / overheat</td><td>pump-4 / overheat</td>
+    <td>3687 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-overheat.1</code><small>Robustness</small></td>
+    <td>4号泵温度过高</td><td>pump-4 / overheat</td><td>pump-4 / overheat</td>
+    <td>5420 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-overheat.2</code><small>Robustness</small></td>
+    <td>过热报警（四号泵）</td><td>pump-4 / overheat</td><td>pump-4 / overheat</td>
+    <td>11791 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>pump-overheat.3</code><small>Robustness</small></td>
+    <td>Pump #4 has high temperature</td><td>pump-4 / overheat</td><td>pump-4 / overheat</td>
+    <td>2308 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>insufficient-info</code><small>Accuracy</small></td>
+    <td>暂无更多信息</td><td>— / unknown</td><td>— / unknown</td>
+    <td>2862 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>insufficient-info.1</code><small>Robustness</small></td>
+    <td>现场情况待确认</td><td>— / unknown</td><td>— / unknown</td>
+    <td>2720 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>insufficient-info.2</code><small>Robustness</small></td>
+    <td>只有这条记录</td><td>— / unknown</td><td>— / unknown</td>
+    <td>2590 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr>
+    <tr><td><code>insufficient-info.3</code><small>Robustness</small></td>
+    <td>More information is needed</td><td>— / unknown</td><td>— / unknown</td>
+    <td>7102 ms</td>
+    <td><span class="badge passed">passed</span>
+    </td></tr></tbody></table></div>
+  </section>
+  <p><a href="https://github.com/LeeJUNhao791/ai-app-regression#readme">Project README</a></p>
+</main>
+</html>
