@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI App Regression v0.2.0 | External Web, API and Android</title>
+<style>
+  :root{color-scheme:light;--ink:#17232f;--muted:#4f5f68;--line:#cbd7d6;--paper:#eef3f1;--navy:#142b3b}
+  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 "Instrument Sans",system-ui,sans-serif}
+  header{background:var(--navy);color:#f4faf9;border-bottom:5px solid #54c4b0;padding:36px max(24px,calc((100% - 1040px)/2))}
+  h1,h2,p{margin:0}h1{font-size:clamp(28px,5vw,45px);letter-spacing:-.035em;line-height:1.08}
+  header p{margin-top:12px;color:#c4ddd9;overflow-wrap:anywhere}main{max-width:1088px;margin:0 auto;padding:24px}
+  .demo-summary{margin:0 0 16px;padding:10px 14px;border-left:4px solid #0a5943;background:#e2f6eb;color:#0a5943;font-weight:700}
+  dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 26px;border:1px solid var(--line);background:#fff}
+  dl div{padding:14px 18px}dl div+div{border-left:1px solid var(--line)}
+  dt{color:var(--muted);font-size:13px}dd{margin:4px 0 0;font-size:20px;font-weight:700}
+  h2{font-size:20px;margin-bottom:8px}section{margin-bottom:25px}section>p{margin-bottom:10px;color:var(--muted)}
+  ul{list-style:none;padding:0;margin:0;border:1px solid var(--line);background:#fff}
+  li{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:12px 14px}li+li{border-top:1px solid var(--line)}
+  li p{color:var(--muted);overflow-wrap:anywhere}li a{display:inline-block;margin:3px 8px 0 0;color:#0a526d;overflow-wrap:anywhere}
+  .badge{display:inline-block;align-self:start;justify-self:start;border:1px solid currentColor;padding:1px 7px;font-size:11px;font-weight:750;text-transform:uppercase;white-space:nowrap}
+  .passed{color:#0a5943;background:#e2f6eb}.failed{color:#9d2331;background:#fff0ee}.partial,.skipped{color:#734207;background:#fff3d8}
+  .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:760px;background:#fff}
+  th,td{border:1px solid var(--line);text-align:left;vertical-align:top;padding:8px 10px}th{background:#dce9e6}
+  small{display:block;color:var(--muted)}code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:.9em}
+  @media(max-width:560px){main{padding:16px}dl{grid-template-columns:1fr}dl div+div{border-left:0;border-top:1px solid var(--line)}}
+  .evidence-image{display:block;max-width:100%;height:auto;border:1px solid var(--line)}
+  pre{overflow:auto;padding:14px;border:1px solid var(--line);background:#fff}
+</style>
+<header><h1>AI App Regression</h1>
+<p>2026-11-12T11:00:33.201Z · Scope <strong>External Web, API and Android</strong> · Ticket <code>WO-e7c89979-4605-49e3-9dce-add40d9a31f2</code></p><p>Recorded v0.2.0 release acceptance run &middot; commit <code>0d8f36a</code></p></header>
+<main>
+
+  <dl aria-label="Results">
+    <div><dt>Workflow</dt><dd><span class="badge passed">passed</span></dd></div>
+
+  </dl>
+  <section><h2>Checks</h2><ul>
+    <li><span class="badge passed">passed</span><div>
+      <strong>External Android preflight</strong><p>ADB found an authorized physical device and the APK package names match.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>External Web create</strong><p>Web created and displayed work order WO-e7c89979-4605-49e3-9dce-add40d9a31f2.</p>
+      <a href="web.png">Open Web screenshot</a>
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>External backend lookup</strong><p>Lookup returned the same work order WO-e7c89979-4605-49e3-9dce-add40d9a31f2 with status resolved and expected labels pump-1 / leak.</p>
+
+    </div></li>
+    <li><span class="badge passed">passed</span><div>
+      <strong>External Android device</strong><p>The physical Android device looked up and displayed the same work order WO-e7c89979-4605-49e3-9dce-add40d9a31f2 and labels.</p>
+      <a href="android-instrumentation.txt">Open Android test log</a>
+    </div></li></ul></section>
+
+  <section><h2>Web screenshot</h2>
+    <img class="evidence-image" src="web.png" alt="External maintenance form displaying work order WO-e7c89979-4605-49e3-9dce-add40d9a31f2" width="1280" height="800">
+  </section>
+  <section><h2>Android test results</h2>
+    <p>The test ran on a physical Pixel 4 XL running Android 11 (API 30). The external API returned <code>resolved</code>, which the Android lookup maps to <code>completed</code>.</p>
+    <pre>INSTRUMENTATION_RESULT: stream=
+Ticket UI assertions passed
+Ticket ID: WO-e7c89979-4605-49e3-9dce-add40d9a31f2
+Status: completed
+Device: pump-1
+Category: leak
+
+INSTRUMENTATION_CODE: -1</pre>
+  </section>
+  <p><a href="https://github.com/LeeJUNhao791/ai-app-regression/releases/tag/v0.2.0">v0.2.0 release notes</a> &middot; <a href="../">Four-layer model report</a></p>
+</main>
+</html>

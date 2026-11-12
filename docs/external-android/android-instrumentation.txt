@@ -1,0 +1,8 @@
+INSTRUMENTATION_RESULT: stream=
+Ticket UI assertions passed
+Ticket ID: WO-e7c89979-4605-49e3-9dce-add40d9a31f2
+Status: completed
+Device: pump-1
+Category: leak
+
+INSTRUMENTATION_CODE: -1
