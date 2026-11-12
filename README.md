@@ -4,73 +4,37 @@ Run one maintenance ticket through a real browser, a backend API, a Linux model
 service, and an Android phone. One command produces an HTML report with the
 ticket ID, labelled examples, and evidence from each check.
 
-A browser submits `三号泵启动后异响`. The backend sends the text to the model
-service and returns a completed ticket. The browser and Android app each
-retrieve that ticket by ID. The labelled expectation is `pump-3 / noise`.
+[Quick start](#quick-start) · [Step-by-step guide](docs/getting-started.md)
 
-## Run the demo
+![Four-layer work-order flow. Chromium submits and looks up the work order through the backend API, which calls the Linux model service. Android looks up the same work order by ID.](docs/assets/work-order-flow.svg)
+
+The demo submits `三号泵启动后异响` (Pump 3 makes an abnormal noise). Web, an
+independent API lookup, and the Android app verify the same completed work order
+by ID. The expected result is `pump-3 / noise`.
+
+## Quick start
 
 Use Node.js 22+ and Python 3.10+. On Windows and macOS, start Docker with Linux
 containers to run the model service. On Linux, the command starts the service
-directly. Install the browser once:
+directly. From the repository root, run the demo with fixed model responses.
 
 ```sh
 npm ci
 npx playwright install chromium
+node workflow/run.mjs --android off
 ```
 
-Then run from the repository root:
+Open the printed `artifacts/run-…/report.html`. Expect the Web, API, and Linux
+model checks to pass, with Android marked **skipped** and the workflow marked
+**partial**. To add a phone or a real model, follow the [step-by-step guide](docs/getting-started.md).
 
-```sh
-npm run check
-```
+## Example report
 
-Open the printed `artifacts/run-…/report.html`. Each run also saves
-`report.json`, the Chromium screenshot, and available service and device logs.
-Use `--output path/to/new-directory` to choose a fresh destination.
+![Screenshot of a live v0.1.1 HTML report. Web, the backend API, and the physical Android device verified the same completed work order. Model accuracy was 4/4 and robustness was 11/12.](docs/assets/live-report.png)
 
-### Include an Android phone
-
-Install JDK 17, Android SDK Platform 35, Build Tools 35.0.0, and Platform-Tools.
-Set `JAVA_HOME` and `ANDROID_HOME`. Connect and unlock an Android 7.0+ phone,
-enable USB debugging, and authorize the computer. Run:
-
-```sh
-node workflow/run.mjs --android required
-```
-
-The runner builds and installs both APKs, maps the backend's loopback port
-over ADB, and checks the ticket fields on the app screen. It removes the
-temporary APKs and port mapping after the check. Pass `--serial SERIAL` when
-multiple devices are attached. With the default `--android auto`, a missing
-device yields a partial result. Use `--android off` for a browser/API/model
-run. A failed required check returns a nonzero exit code.
-
-### Connect a real model
-
-Set `LLM_BASE_URL` to an OpenAI-compatible API base ending in `/v1`, set
-`LLM_MODEL`, and set `LLM_API_KEY` if the provider requires it. The provider's
-Chat Completions endpoint must return a JSON object with `device` and
-`category` in its message content. The object can be wrapped in a single
-Markdown code block. Provider requests share a 30-second timeout budget. A
-transport failure can be retried once within the remaining timeout. Set
-`LLM_ATTEMPT_TIMEOUT_SECONDS` to a smaller first-attempt limit to leave time for
-a retry after a timeout. When using a
-model provider on the host from Docker Desktop, use `host.docker.internal` in
-the provider URL.
-
-For providers that support `enable_thinking`, such as Alibaba Cloud Model
-Studio with `qwen3.6-flash`, set `LLM_ENABLE_THINKING=false` to use non-thinking
-mode. Set `LLM_JSON_MODE=true` if the provider supports Chat Completions JSON
-mode for the selected model. Field validation applies to the returned JSON.
-
-```sh
-node workflow/run.mjs --live --android required
-```
-
-The Linux model service forwards the synthetic ticket text to the configured
-provider. To use an already-running Linux copy of this project's model service,
-pass `--model-url URL` and select the matching mock or live mode.
+In this run, Chromium, the API, and a Pixel 4 XL matched the ticket ID and
+`pump-3 / noise / completed`. The overall report shows **failed** because one
+robustness sample timed out against `qwen3.6-flash`.
 
 ## What the report verifies
 
