@@ -162,6 +162,44 @@ node workflow/run.mjs --backend-url http://127.0.0.1:8090 --backend-map fixtures
 
 浏览器通过表单自身的 POST 提交 JSON。脚本核对请求是否发往映射的创建接口、是否在映射的字段中携带样例文本，再比较页面显示的 ID 和创建响应中的 ID。随后用同一 ID 独立查询 API，核对映射字段及样例预期分类。报告附工单 ID 和 Web 截图。
 
+## 图书馆场地预约示例
+
+浏览器提交场地预约并显示回执编号。本地示例 API 为「2 号分馆的自习室」
+返回固定分类。在仓库根目录使用 Node.js 22+，安装依赖和 Chromium。
+
+```sh
+npm ci
+npx playwright install chromium --only-shell
+```
+
+Linux 缺少浏览器系统依赖时，给安装命令加上 `--with-deps`。
+在一个终端启动预约示例。
+
+```sh
+node examples/library/backend.mjs
+```
+
+在另一个终端运行现有命令。
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8091 --backend-map examples/library/backend.map.json --web-url http://127.0.0.1:8091/reserve --web-map examples/library/web.map.json --profile examples/library/profile.json --fixtures examples/library/reservations.json --output artifacts/library-reservation
+```
+
+打开 `artifacts/library-reservation/report.html`，查看回执编号、浏览器截图
+和独立 API 回查结果 `accepted`、`branch-2 / study-room`。
+重复运行时，请换一个 `--output` 目录。
+
+[API 映射](../examples/library/backend.map.json) 将 `receipt.number`、
+`receipt.note`、`receipt.state`、`routing.branchCode` 和 `routing.spaceType`
+依次映射到 `id`、`text`、`status`、`device` 和 `category`。
+[Web 映射](../examples/library/web.map.json) 指定输入框、提交按钮和回执编号。
+[领域配置](../examples/library/profile.json) 定义分馆编号格式和允许的场地类型。
+[样例](../examples/library/reservations.json) 提供预约文本和预期标签。
+
+外部模式每次使用第一条样例，要求同步 POST 和 GET 的映射字段一致，并达到
+配置的结束状态。回归工具仍要求这五个字段，报告会用 `Ticket` 标记回执编号。
+外部模式只使用领域配置的校验规则。这个示例使用固定分类，验证范围为 Web 和 API。
+
 ## 外部 Android
 
 启动[外部 Web 示例](#外部-web)，连接并解锁 Android 真机，授权 USB 调试。用 JDK 17 和 SDK Platform 35 在 `android` 目录构建示例应用和测试 APK。Windows 下用 `gradlew.bat` 替换 `./gradlew`。

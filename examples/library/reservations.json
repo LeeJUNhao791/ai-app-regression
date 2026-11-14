@@ -1,0 +1,7 @@
+[
+  {
+    "id": "branch-2-study-room",
+    "text": "Could I reserve a study room at branch 2?",
+    "expected": { "device": "branch-2", "category": "study-room" }
+  }
+]

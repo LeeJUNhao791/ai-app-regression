@@ -1,0 +1,13 @@
+{
+  "create_path": "/v1/reservations",
+  "lookup_path": "/v1/receipts/{id}",
+  "request_text_field": "requestNote",
+  "completed_status": "accepted",
+  "response": {
+    "id": "receipt.number",
+    "text": "receipt.note",
+    "status": "receipt.state",
+    "device": "routing.branchCode",
+    "category": "routing.spaceType"
+  }
+}

@@ -54,6 +54,8 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 
 加上 `--android-map` 后，可以指定应用 APK 和测试 APK，在真机上查询同一张工单。[外部 Android 示例](docs/getting-started.zh-CN.md#外部-android)
 
+[图书馆场地预约示例](docs/getting-started.zh-CN.md#图书馆场地预约示例)演示如何配置预约回执、分馆和场地类型的映射。
+
 ## 报告验证了什么
 
 - **Web 和 API。** Playwright 在 Chromium 中提交表单。测试脚本独立查询已完成的工单，并核对 ID、状态和数据。

@@ -253,6 +253,48 @@ then matches the displayed ID to the mapped response. It uses that ID for the
 independent API lookup and checks the mapped fields and expected classification.
 The report includes the work-order ID and a Web screenshot.
 
+## Library reservation example
+
+The library form submits a reservation request and displays a receipt number.
+The sample API returns a fixed classification for a branch 2 study-room request.
+Install Node.js 22+ and Chromium from the repository root.
+
+```sh
+npm ci
+npx playwright install chromium --only-shell
+```
+
+Use `--with-deps` for the Chromium install on Linux if browser dependencies are missing.
+Start the example in one terminal.
+
+```sh
+node examples/library/backend.mjs
+```
+
+Run the existing CLI in a second terminal.
+
+```sh
+node workflow/run.mjs --backend-url http://127.0.0.1:8091 --backend-map examples/library/backend.map.json --web-url http://127.0.0.1:8091/reserve --web-map examples/library/web.map.json --profile examples/library/profile.json --fixtures examples/library/reservations.json --output artifacts/library-reservation
+```
+
+Open `artifacts/library-reservation/report.html` for the receipt number,
+browser screenshot and lookup result `accepted`, `branch-2 / study-room`.
+Choose a new `--output` directory when you repeat the run.
+
+The [backend map](../examples/library/backend.map.json) maps `receipt.number`,
+`receipt.note`, `receipt.state`, `routing.branchCode` and `routing.spaceType`
+to `id`, `text`, `status`, `device` and `category`. The
+[Web map](../examples/library/web.map.json) points to the note, submit button
+and displayed receipt number. The [profile](../examples/library/profile.json)
+sets the branch ID pattern and allowed space types. The
+[fixture](../examples/library/reservations.json) supplies the request and expected labels.
+
+External mode uses the first fixture and checks synchronous POST and GET responses
+with the same mapped values and a matching final status. The runner still requires
+the five mapped fields and its report labels the receipt `Ticket`.
+The external mode uses the profile's validation rules. This example returns fixed
+labels and runs the Web and API checks only.
+
 ## External Android
 
 Start the [external Web example](#external-web). Connect and unlock a physical
