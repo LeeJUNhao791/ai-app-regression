@@ -1,0 +1,5 @@
+{
+  "system_prompt": "Classify library space requests. Return exactly one JSON object with device and category. Use branch-N for a numbered branch, or null when absent. Classify the requested space as study-room, event-space, or unknown.",
+  "device_id_pattern": "branch-[1-9][0-9]*",
+  "categories": ["study-room", "event-space", "unknown"]
+}

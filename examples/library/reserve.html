@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library space reservation</title>
+<style>
+  body { max-width: 42rem; margin: 3rem auto; padding: 0 1rem; font: 1rem system-ui, sans-serif; }
+  label, textarea, button { display: block; margin-bottom: 1rem; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; }
+</style>
+<h1>Library space reservation</h1>
+<form id="reservation">
+  <label for="booking-note">Which branch and space would you like to reserve?</label>
+  <textarea id="booking-note" rows="4" required></textarea>
+  <button id="reserve-space" type="submit">Request a reservation</button>
+</form>
+<p role="status">Receipt <output id="receipt-number"></output></p>
+<script>
+  const form = document.querySelector('#reservation');
+  const note = document.querySelector('#booking-note');
+  const receipt = document.querySelector('#receipt-number');
+  const submit = document.querySelector('#reserve-space');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    receipt.textContent = '';
+    try {
+      const response = await fetch('/v1/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestNote: note.value }),
+      });
+      if (!response.ok) throw new Error('Reservation request failed');
+      const result = await response.json();
+      receipt.textContent = result.receipt.number;
+    } catch {
+      receipt.textContent = 'Could not submit reservation';
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
+</html>
