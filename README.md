@@ -8,6 +8,10 @@ ticket ID, labelled examples, and evidence from each check.
 
 [External Web, API and Android report](https://leejunhao791.github.io/ai-app-regression/external-android/) · [Four-layer model report](https://leejunhao791.github.io/ai-app-regression/) · [Quick start](#quick-start) · [Step-by-step guide](docs/getting-started.md)
 
+Chromium submits a library reservation to a local sample app. An independent API
+lookup uses the displayed receipt number to verify the reservation status, branch,
+and space type. [Run the library reservation example](docs/getting-started.md#library-reservation-example).
+
 ![Four-layer work-order flow. Chromium submits and looks up the work order through the backend API, which calls the Linux model service. Android looks up the same work order by ID.](docs/assets/work-order-flow.svg)
 
 The demo submits `三号泵启动后异响` (Pump 3 makes an abnormal noise). Web, an
@@ -68,9 +72,6 @@ to map different routes and fields and verify the same ticket after creation.
 
 Add `--web-url` and `--web-map` to submit your Web form and verify its displayed
 ticket through the API. See the [external Web example](docs/getting-started.md#external-web).
-
-The [library reservation example](docs/getting-started.md#library-reservation-example)
-uses a custom profile and maps a reservation receipt, branch, and space type.
 
 Add `--android-map` to run your app and instrumentation APKs on a physical
 device and look up the same work order. See the

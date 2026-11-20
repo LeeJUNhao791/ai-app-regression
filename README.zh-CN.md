@@ -6,6 +6,8 @@
 
 [外部 Web、API 和 Android 验收报告](https://leejunhao791.github.io/ai-app-regression/external-android/) · [四端模型示例报告](https://leejunhao791.github.io/ai-app-regression/) · [快速开始](#快速开始) · [上手教程](docs/getting-started.zh-CN.md)
 
+在本机用 Chromium 提交图书馆场地预约。测试脚本根据页面显示的回执编号独立查询 API，核对预约状态、分馆和场地类型。[运行图书馆场地预约示例](docs/getting-started.zh-CN.md#图书馆场地预约示例)。
+
 ![四端工单流程。Chromium 通过后端 API 提交和查询工单，后端调用 Linux 模型服务，Android 按 ID 查询同一张工单。](docs/assets/work-order-flow.svg)
 
 演示提交「三号泵启动后异响」。Web、独立 API 查询和 Android 应用按 ID 核对同一张已完成的工单，预期识别结果为 `pump-3 / noise`。
@@ -53,8 +55,6 @@ node workflow/run.mjs --model-only --fixtures fixtures/custom-tickets.example.js
 再加 `--web-url` 和 `--web-map`，即可由浏览器提交自己的表单，再通过 API 核对页面显示的工单。[外部 Web 示例](docs/getting-started.zh-CN.md#外部-web)
 
 加上 `--android-map` 后，可以指定应用 APK 和测试 APK，在真机上查询同一张工单。[外部 Android 示例](docs/getting-started.zh-CN.md#外部-android)
-
-[图书馆场地预约示例](docs/getting-started.zh-CN.md#图书馆场地预约示例)演示如何配置预约回执、分馆和场地类型的映射。
 
 ## 报告验证了什么
 
