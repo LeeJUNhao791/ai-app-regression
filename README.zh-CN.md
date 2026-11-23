@@ -1,5 +1,9 @@
 # AI App Regression
 
+[![CI](https://github.com/LeeJUNhao791/ai-app-regression/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LeeJUNhao791/ai-app-regression/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LeeJUNhao791/ai-app-regression)](https://github.com/LeeJUNhao791/ai-app-regression/releases/latest)
+[![License](https://img.shields.io/github/license/LeeJUNhao791/ai-app-regression)](LICENSE)
+
 [English](README.md)
 
 用同一张维修工单验证真实浏览器、后端 API、Linux 模型服务和 Android 真机。一条命令生成 HTML 报告，记录工单 ID、标注样例和各项检查的证据。
@@ -84,6 +88,10 @@ v0.1 在运行 Android 11（API 30）的 Pixel 4 XL 上通过真机验收，同�
 v0.1.1 的真实模型验收使用 Linux 容器中的 `qwen3.6-flash` 和运行 Android 11（API 30，`arm64-v8a`）的 Pixel 4 XL。Chromium 创建了工单 `e96fb437-30da-430f-a239-deb49891ddb6`。独立 API 查询和 Android 仪器化测试核对了相同的工单 ID 和字段（`pump-3`、`noise`、`completed`）。
 
 这次真实模型验收通过了 4/4 条原始样例和 11/12 条鲁棒性变体。完整运行中，`pump-noise.2` 在 30.03 秒时超时。用相同配置单独复测后，模型在 2.88 秒内返回了预期结果 `pump-3 / noise`。
+
+## 参与贡献
+
+提交问题和修改前，请参考[贡献指南](CONTRIBUTING.md)中的复现信息与验证命令。
 
 ## 许可证
 

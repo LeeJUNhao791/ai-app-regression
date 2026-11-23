@@ -1,5 +1,9 @@
 # AI App Regression
 
+[![CI](https://github.com/LeeJUNhao791/ai-app-regression/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LeeJUNhao791/ai-app-regression/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LeeJUNhao791/ai-app-regression)](https://github.com/LeeJUNhao791/ai-app-regression/releases/latest)
+[![License](https://img.shields.io/github/license/LeeJUNhao791/ai-app-regression)](LICENSE)
+
 [简体中文](README.zh-CN.md)
 
 Run one maintenance ticket through a real browser, a backend API, a Linux model
@@ -125,6 +129,10 @@ The live suite passed 4/4 original cases and 11/12 robustness variants.
 `pump-noise.2` timed out after 30.03 seconds during the full run. An isolated
 retest with the same model configuration returned the expected `pump-3 / noise`
 in 2.88 seconds.
+
+## Contributing
+
+See the [contribution guide](CONTRIBUTING.md) for checks and the information to include in a bug report.
 
 ## License
 
