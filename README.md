@@ -18,6 +18,8 @@ and space type. [Run the library reservation example](docs/getting-started.md#li
 
 Freeze and replay that explicit Web/API flow with a versioned contract, fresh receipt IDs, and no model calls in the bundled sample. [TraceFreeze v1 prototype](docs/tracefreeze.md). Android is not tested in this mode.
 
+**Start without model keys:** [install TraceFreeze from a source ZIP, freeze/replay, and reproduce a wrong business result](docs/tracefreeze-portable.md). Requires Node.js 22+ and Playwright Chromium; no Python, Docker or device.
+
 ![Four-layer work-order flow. Chromium submits and looks up the work order through the backend API, which calls the Linux model service. Android looks up the same work order by ID.](docs/assets/work-order-flow.svg)
 
 The demo submits `三号泵启动后异响` (Pump 3 makes an abnormal noise). Web, an

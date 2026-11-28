@@ -14,6 +14,8 @@
 
 TraceFreeze v1 可冻结并回放这条明确的 Web/API 预约契约，跨步骤绑定新的回执 ID，并输出报告。内置预约示例不调用模型；本模式 Android 未测。详见 [TraceFreeze 原型说明](docs/tracefreeze.md)。
 
+**无需模型密钥即可开始：**[从源码 ZIP 安装 TraceFreeze、冻结回放并复现错误业务结果](docs/tracefreeze-portable.zh-CN.md)。需要 Node.js 22+ 和 Playwright Chromium，无需 Python、Docker 或设备。
+
 ![四端工单流程。Chromium 通过后端 API 提交和查询工单，后端调用 Linux 模型服务，Android 按 ID 查询同一张工单。](docs/assets/work-order-flow.svg)
 
 演示提交「三号泵启动后异响」。Web、独立 API 查询和 Android 应用按 ID 核对同一张已完成的工单，预期识别结果为 `pump-3 / noise`。
