@@ -11,7 +11,7 @@ function loadMapping(path) {
   };
   let map;
   try {
-    map = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(path)));
+    map = isObject(path) ? path : JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(path)));
   } catch {
     invalid('root', 'expected a readable UTF-8 JSON file.');
   }

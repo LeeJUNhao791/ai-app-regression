@@ -12,6 +12,8 @@
 
 在本机用 Chromium 提交图书馆场地预约。测试脚本根据页面显示的回执编号独立查询 API，核对预约状态、分馆和场地类型。[运行图书馆场地预约示例](docs/getting-started.zh-CN.md#图书馆场地预约示例)。
 
+TraceFreeze v1 可冻结并回放这条明确的 Web/API 预约契约，跨步骤绑定新的回执 ID，并输出报告。内置预约示例不调用模型；本模式 Android 未测。详见 [TraceFreeze 原型说明](docs/tracefreeze.md)。
+
 ![四端工单流程。Chromium 通过后端 API 提交和查询工单，后端调用 Linux 模型服务，Android 按 ID 查询同一张工单。](docs/assets/work-order-flow.svg)
 
 演示提交「三号泵启动后异响」。Web、独立 API 查询和 Android 应用按 ID 核对同一张已完成的工单，预期识别结果为 `pump-3 / noise`。

@@ -16,6 +16,8 @@ Chromium submits a library reservation to a local sample app. An independent API
 lookup uses the displayed receipt number to verify the reservation status, branch,
 and space type. [Run the library reservation example](docs/getting-started.md#library-reservation-example).
 
+Freeze and replay that explicit Web/API flow with a versioned contract, fresh receipt IDs, and no model calls in the bundled sample. [TraceFreeze v1 prototype](docs/tracefreeze.md). Android is not tested in this mode.
+
 ![Four-layer work-order flow. Chromium submits and looks up the work order through the backend API, which calls the Linux model service. Android looks up the same work order by ID.](docs/assets/work-order-flow.svg)
 
 The demo submits `三号泵启动后异响` (Pump 3 makes an abnormal noise). Web, an
