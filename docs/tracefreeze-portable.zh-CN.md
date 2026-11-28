@@ -13,6 +13,8 @@ npm ci --no-audit --no-fund
 npx playwright install chromium --only-shell
 ```
 
+预览验收范围为 Windows 干净解压目录，复用 npm/Chromium 缓存。全新电脑安装与 Linux 预览环境尚未独立验收。
+
 Linux 请用 `npx playwright install chromium --only-shell --with-deps`，同时安装浏览器系统依赖。源码包不包含 npm 依赖和 Playwright 配套 Chromium，它们需要单独安装。全新电脑首次安装需要联网。如果当前电脑已经缓存锁定版本的 npm 包和配套 Chromium，可以改用 `npm ci --offline --no-audit --no-fund`，并跳过浏览器安装。复用缓存的干净目录验证不等于全新电脑离线安装验证。请在解压后的项目根目录操作。
 
 ## 冻结，再回放

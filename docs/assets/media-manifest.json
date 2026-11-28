@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "2026-11-28",
+  "capture": "Actual Windows GDI window capture; 1x speed; no audio",
+  "media": {
+    "path": "tracefreeze-demo.gif",
+    "bytes": 104986,
+    "sha256": "816d66664a01a5afe693b40fa7b364001ec2d2c5a2a124c782946c6b53e2b7f6",
+    "durationSeconds": 15,
+    "width": 1440,
+    "height": 816,
+    "frames": 150
+  },
+  "recordedSources": {
+    "ai-app-regression": "c5c16df7a8ef7661b9fea82854c83f13103bb870"
+  },
+  "documentationBaseline": "54baff0e662ea6fd8a2a7b02f04817710e796199",
+  "client": "TraceFreeze CLI with Chromium and a deterministic loopback Web/API sample",
+  "scope": "Fixed human-written bundled flow; fresh receipt IDs; bundled runner modelCalls 0; Android not tested; no autonomous exploration or repair.",
+  "stdoutDisplayPolicy": "Actual command output; only the absolute local Report: path line is omitted from display, with the filter visible. Full stdout retained in local validation evidence."
+}
