@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "page_path": "/reserve",
+  "web": {
+    "input_selector": "#booking-note",
+    "submit_selector": "#reserve-space",
+    "ticket_id_selector": "#receipt-number"
+  },
+  "backend": {
+    "create_path": "/v1/reservations",
+    "lookup_path": "/v1/receipts/{id}",
+    "request_text_field": "requestNote",
+    "completed_status": "accepted",
+    "response": {
+      "id": "receipt.number",
+      "text": "receipt.note",
+      "status": "receipt.state",
+      "device": "routing.branchCode",
+      "category": "routing.spaceType"
+    }
+  },
+  "text": "Could I reserve a study room at branch 2?",
+  "expected": {
+    "status": "accepted",
+    "device": "branch-2",
+    "category": "study-room"
+  }
+}

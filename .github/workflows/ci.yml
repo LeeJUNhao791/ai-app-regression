@@ -33,6 +33,10 @@ jobs:
       - run: npx playwright install chromium --only-shell --with-deps
       - name: Verify the external Web form and API lookup
         run: node --test tests/external-web.mjs
+      - name: Verify TraceFreeze browser/API contracts and forbidden model egress
+        run: node --test tests/tracefreeze-browser.mjs
+        env:
+          TRACEFREEZE_EVIDENCE_ROOT: artifacts/tracefreeze
       - name: Run the workflow and verify the failure example
         shell: bash
         run: |

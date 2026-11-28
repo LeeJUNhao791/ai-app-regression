@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 function loadWebMap(path) {
   let map;
   try {
-    map = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(path)));
+    map = path && typeof path === 'object' ? path : JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(path)));
   } catch {
     throw new Error(`Web map "${path}": expected a readable UTF-8 JSON file.`);
   }
@@ -18,7 +18,7 @@ function loadWebMap(path) {
   return map;
 }
 
-export async function checkExternalWeb({ pageUrl, mapPath, client, text, outputDir }) {
+export async function checkExternalWeb({ pageUrl, mapPath, client, text, outputDir, networkPolicy, responseTimeoutMs = 40_000 }) {
   const url = new URL(pageUrl);
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
     throw new Error('--web-url must be an HTTP(S) page URL without embedded credentials.');
@@ -32,7 +32,10 @@ export async function checkExternalWeb({ pageUrl, mapPath, client, text, outputD
   try {
     browser = await chromium.launch();
     failure = 'The external Web page could not load.';
-    page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 },
+      ...(networkPolicy ? { serviceWorkers: 'block' } : {}) });
+    if (networkPolicy) await networkPolicy(context);
+    page = await context.newPage();
     page.setDefaultTimeout(8_000);
     assert.ok((await page.goto(url.href, { waitUntil: 'domcontentloaded' }))?.ok());
     failure = 'The external Web input could not be filled. Check input_selector.';
@@ -40,7 +43,7 @@ export async function checkExternalWeb({ pageUrl, mapPath, client, text, outputD
     failure = 'The external Web form did not send a successful POST to the mapped create endpoint. Check submit_selector and create_path.';
     const [response] = await Promise.all([
       page.waitForResponse((candidate) => candidate.url() === client.createUrl &&
-        candidate.request().method() === 'POST', { timeout: 40_000 }),
+        candidate.request().method() === 'POST', { timeout: responseTimeoutMs }),
       page.locator(map.submit_selector).click(),
     ]);
     assert.ok([200, 201].includes(response.status()));
