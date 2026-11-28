@@ -13,6 +13,8 @@ npm ci --no-audit --no-fund
 npx playwright install chromium --only-shell
 ```
 
+Preview acceptance is Windows with a clean extraction and reused npm/Chromium caches. A fresh-machine installation and Linux preview setup have not been independently accepted.
+
 On Linux, use `npx playwright install chromium --only-shell --with-deps` to install browser system dependencies too. Dependencies and a compatible Playwright Chromium are installed separately; they are not bundled in the source ZIP. A fresh machine needs network access for installation. If this computer already has the locked npm packages and compatible Chromium cached, use `npm ci --offline --no-audit --no-fund` and skip the browser installation. A clean extraction with reused caches is not a fresh-machine/offline installation test. Do not run these commands from an older checkout's `node_modules` directory.
 
 ## Freeze, then replay

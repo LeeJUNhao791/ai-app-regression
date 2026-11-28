@@ -20,6 +20,14 @@ Freeze and replay that explicit Web/API flow with a versioned contract, fresh re
 
 **Start without model keys:** [install TraceFreeze from a source ZIP, freeze/replay, and reproduce a wrong business result](docs/tracefreeze-portable.md). Requires Node.js 22+ and Playwright Chromium; no Python, Docker or device.
 
+## TraceFreeze: 15-second demo
+
+![Actual Windows capture: TraceFreeze freezes and replays the bundled Web/API reservation with different receipt IDs](docs/assets/tracefreeze-demo.gif)
+
+Chromium submits to the real local sample API using a fixed, human-written contract. Freeze and replay each create a fresh receipt; the bundled runner reports `modelCalls: 0`. This is not autonomous exploration or repair, and this mode has no Android acceptance.
+
+**Start here:** [Windows source-ZIP quickstart, including a wrong-business-result check](docs/tracefreeze-portable.md). The preview was verified from a clean extraction using cached dependencies and Chromium. Fresh-machine installation and Linux preview setup were not independently accepted. [Recording provenance and SHA-256](docs/assets/media-manifest.json).
+
 ![Four-layer work-order flow. Chromium submits and looks up the work order through the backend API, which calls the Linux model service. Android looks up the same work order by ID.](docs/assets/work-order-flow.svg)
 
 The demo submits `三号泵启动后异响` (Pump 3 makes an abnormal noise). Web, an
