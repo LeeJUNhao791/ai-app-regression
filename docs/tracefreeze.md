@@ -1,5 +1,7 @@
 # TraceFreeze v1: freeze and replay a reservation contract
 
+[Install from a clean source ZIP and reproduce a failing business result](tracefreeze-portable.md) · [中文操作指南](tracefreeze-portable.zh-CN.md)
+
 TraceFreeze executes one explicit library reservation Web -> API flow. You review the JSON contract yourself; freeze validates it with a real Chromium submission and independent API lookup, then saves the contract. Replay performs a new submission and binds its fresh receipt ID to the lookup. It never substitutes recorded successful responses.
 
 Use Node.js 22+, the existing npm dependencies and installed Playwright Chromium. This mode needs no Python, Docker, model keys or model service. From the repository root, start the bundled business API in one terminal:
@@ -11,8 +13,8 @@ node examples/library/backend.mjs
 In a second terminal:
 
 ```sh
-npm run tracefreeze -- freeze --contract examples/library/tracefreeze.json --base-url http://127.0.0.1:8091 --output artifacts/freeze
-npm run tracefreeze -- replay --contract artifacts/freeze/contract.json --base-url http://127.0.0.1:8091 --output artifacts/replay
+node workflow/tracefreeze.mjs freeze --contract examples/library/tracefreeze.json --base-url http://127.0.0.1:8091 --output artifacts/freeze
+node workflow/tracefreeze.mjs replay --contract artifacts/freeze/contract.json --base-url http://127.0.0.1:8091 --output artifacts/replay
 ```
 
 Each output directory must be new. Both commands produce `report.json`, escaped `report.html`, and a real `web.png` screenshot when Chromium reaches the page. Only a successful freeze writes `contract.json`; a failed run exits with code 1 and retains its failing report. Existing directories are refused without overwriting their contents.
